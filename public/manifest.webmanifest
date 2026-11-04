@@ -1,0 +1,11 @@
+{
+  "name": "Pixel by Number",
+  "short_name": "Pixels",
+  "description": "Relaxing color-by-number pixel art in 2D and 3D.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#efeee9",
+  "theme_color": "#efeee9",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

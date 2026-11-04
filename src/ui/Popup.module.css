@@ -1,0 +1,118 @@
+/* Shared floating list styles for Menu and Select. */
+
+.positioner {
+  z-index: 50;
+  outline: 0;
+}
+
+.popup {
+  min-width: max(200px, var(--anchor-width, 0px));
+  max-height: var(--available-height);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  outline: 0;
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity 140ms var(--ease-out),
+    transform 160ms var(--ease-out);
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--hit);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: default;
+  outline: 0;
+  user-select: none;
+
+  & svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+  }
+
+  &[data-highlighted] {
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+
+  &[data-disabled] {
+    opacity: 0.45;
+  }
+}
+
+.danger,
+.danger svg {
+  color: var(--danger);
+}
+
+.danger[data-highlighted] {
+  background: var(--danger-soft);
+}
+
+.separator {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--border);
+}
+
+.indicator {
+  margin-left: auto;
+  color: var(--accent);
+}
+
+.itemText {
+  flex: 1;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--hit);
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+
+  & svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--border-strong);
+    }
+  }
+}

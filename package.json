@@ -1,0 +1,42 @@
+{
+  "name": "color-by-number-pixel-art",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "idb": "^8.0.4",
+    "lucide-react": "^1.68.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "wouter": "^3.13.0",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "oxfmt": "^0.76.0",
+    "oxlint": "^1.91.0",
+    "oxlint-tsgolint": "^7.0.2005",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  },
+  "packageManager": "bun@1.4.4"
+}
