@@ -2,50 +2,81 @@
 
 /* ------------------------------------------------------------------------ */
 /* Design tokens                                                            */
+/*                                                                          */
+/* One scale for everything: 4px spacing grid, five radii, three control    */
+/* heights and three elevations. Components should only use these.         */
 /* ------------------------------------------------------------------------ */
 
 :root {
   color-scheme: light;
   --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --bg: #efeee9;
-  --bg-canvas: radial-gradient(circle at 50% 35%, #f6f5f1 0%, #e9e7e1 100%);
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --page-gutter: clamp(16px, 4vw, 40px);
+
+  /* Radii: an element nested inside another uses the next size down. */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* Controls share heights so buttons, inputs and segmented controls line up. */
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --icon-sm: 16px;
+  --icon-md: 18px;
+  --icon-lg: 20px;
+
+  /* Type scale */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  /* Light palette: warm neutrals */
+  --bg: #f4f3f0;
+  --bg-canvas: #efede8;
   --surface: #ffffff;
-  --surface-2: #f6f5f2;
-  --surface-3: #ecebe6;
-  --surface-glass: rgb(255 255 255 / 0.86);
-  --border: rgb(20 20 30 / 0.12);
-  --border-strong: rgb(20 20 30 / 0.24);
-  --text: #18181b;
-  --text-muted: #5b5b66;
-  --text-subtle: #84848f;
-  --danger: #c62828;
-  --danger-soft: rgb(198 40 40 / 0.1);
-  --success: #1f8a4c;
+  --surface-2: #f8f7f5;
+  --surface-3: #efeeea;
+  --surface-glass: rgb(255 255 255 / 0.92);
+  --border: rgb(24 22 18 / 0.1);
+  --border-strong: rgb(24 22 18 / 0.17);
+  --text: #1c1b19;
+  --text-muted: #5f5d58;
+  --text-subtle: #8c8a84;
+  --danger: #c4321f;
+  --danger-soft: rgb(196 50 31 / 0.08);
 
   --accent: #1f8a4c;
   --accent-contrast: #ffffff;
-  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
-  --accent-softer: color-mix(in srgb, var(--accent) 8%, transparent);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 6%, transparent);
 
-  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
-  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.06);
-  --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.16), 0 4px 12px rgb(0 0 0 / 0.08);
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-full: 999px;
-
-  /* Comfortable touch target (WCAG 2.5.5 recommends 44×44). */
-  --hit: 44px;
-  --hit-lg: 52px;
+  /* Elevation: hairline border plus a soft, tight shadow. */
+  --shadow-sm: 0 1px 2px rgb(24 22 18 / 0.05);
+  --shadow-md: 0 1px 2px rgb(24 22 18 / 0.04), 0 6px 16px -4px rgb(24 22 18 / 0.08);
+  --shadow-lg: 0 2px 6px rgb(24 22 18 / 0.05), 0 20px 48px -12px rgb(24 22 18 / 0.2);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
-  --duration: 180ms;
+  --duration: 160ms;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
@@ -53,43 +84,54 @@
   --safe-left: env(safe-area-inset-left, 0px);
 }
 
+/* Touch screens get 44px targets without changing the layout rhythm. */
+@media (pointer: coarse) {
+  :root {
+    --control-sm: 36px;
+    --control-md: 44px;
+    --control-lg: 52px;
+  }
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #16161a;
-  --bg-canvas: radial-gradient(circle at 50% 35%, #202027 0%, #141418 100%);
-  --surface: #222228;
-  --surface-2: #2a2a31;
-  --surface-3: #33333b;
-  --surface-glass: rgb(34 34 40 / 0.88);
-  --border: rgb(255 255 255 / 0.1);
-  --border-strong: rgb(255 255 255 / 0.22);
-  --text: #f2f2f5;
-  --text-muted: #b3b3bd;
-  --text-subtle: #8a8a95;
-  --danger: #ff6b6b;
-  --danger-soft: rgb(255 107 107 / 0.14);
-  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.3);
+  --bg: #121214;
+  --bg-canvas: #161619;
+  --surface: #1e1e22;
+  --surface-2: #242429;
+  --surface-3: #2c2c32;
+  --surface-glass: rgb(30 30 34 / 0.92);
+  --border: rgb(255 255 255 / 0.08);
+  --border-strong: rgb(255 255 255 / 0.15);
+  --text: #f1f1f3;
+  --text-muted: #a9a9b2;
+  --text-subtle: #7d7d87;
+  --danger: #ff7a66;
+  --danger-soft: rgb(255 122 102 / 0.12);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 20px -6px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.3), 0 24px 56px -12px rgb(0 0 0 / 0.7);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #16161a;
-    --bg-canvas: radial-gradient(circle at 50% 35%, #202027 0%, #141418 100%);
-    --surface: #222228;
-    --surface-2: #2a2a31;
-    --surface-3: #33333b;
-    --surface-glass: rgb(34 34 40 / 0.88);
-    --border: rgb(255 255 255 / 0.1);
-    --border-strong: rgb(255 255 255 / 0.22);
-    --text: #f2f2f5;
-    --text-muted: #b3b3bd;
-    --text-subtle: #8a8a95;
-    --danger: #ff6b6b;
-    --danger-soft: rgb(255 107 107 / 0.14);
-    --shadow-md: 0 4px 16px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 18px 48px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.3);
+    --bg: #121214;
+    --bg-canvas: #161619;
+    --surface: #1e1e22;
+    --surface-2: #242429;
+    --surface-3: #2c2c32;
+    --surface-glass: rgb(30 30 34 / 0.92);
+    --border: rgb(255 255 255 / 0.08);
+    --border-strong: rgb(255 255 255 / 0.15);
+    --text: #f1f1f3;
+    --text-muted: #a9a9b2;
+    --text-subtle: #7d7d87;
+    --danger: #ff7a66;
+    --danger-soft: rgb(255 122 102 / 0.12);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 20px -6px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.3), 0 24px 56px -12px rgb(0 0 0 / 0.7);
   }
 }
 
@@ -119,7 +161,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: var(--text-base);
   line-height: 1.45;
   font-feature-settings:
     "tnum" 1,
@@ -146,8 +188,9 @@ p {
 h1,
 h2,
 h3 {
-  letter-spacing: -0.015em;
-  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  line-height: 1.25;
 }
 
 button,
@@ -163,6 +206,11 @@ canvas,
 svg {
   display: block;
   max-width: 100%;
+}
+
+/* Lucide icons: one stroke weight everywhere. */
+.lucide {
+  flex: none;
 }
 
 :focus-visible {
@@ -188,13 +236,14 @@ svg {
 
 .skip-link {
   position: fixed;
-  top: calc(var(--safe-top) + 8px);
-  left: 8px;
+  top: calc(var(--safe-top) + var(--space-2));
+  left: var(--space-2);
   z-index: 100;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
   background: var(--accent);
   color: var(--accent-contrast);
+  font-size: var(--text-md);
   font-weight: 600;
   text-decoration: none;
   transform: translateY(-200%);

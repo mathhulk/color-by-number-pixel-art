@@ -31,7 +31,9 @@ of everything you're working on. All data stays on your device.
   Finishing brings a shine sweep, a 3D victory spin and confetti. Reduced motion is respected.
 - **Export:**
   - Crisp, upscaled PNG artwork, either your progress or the finished piece.
-  - A printable numbered sheet with a color key.
+  - A printable **coloring page** (Letter or A4) for coloring by hand: a numbered grid with a bold
+    outline and a key of numbered color swatches at the bottom of the paper, with an optional
+    name line and color hints. It can be printed straight from the app.
   - 3D snapshots and MagicaVoxel `.vox` models.
   - Portable project files, shareable through the native share sheet.
 - **Library.** Thumbnails of every design with progress, filters, search, rename, duplicate,
@@ -78,9 +80,10 @@ bun run dev
 | `bun run format`   | Format everything                             |
 | `bun run test`     | Run unit tests                                |
 
-To deploy under a sub-path (for example GitHub Pages), build with `BASE_PATH=/repo-name/`. The app
-uses hash routing, so it works on any static host without rewrite rules. The **Deploy to GitHub
-Pages** workflow can be run manually once Pages is set to "GitHub Actions".
+Every push to `main` builds the app and publishes it to the `gh-pages` branch, which GitHub Pages
+serves at <https://mathhulk.github.io/color-by-number-pixel-art/>. To build for another sub-path,
+set `BASE_PATH=/some-path/`. The app uses hash routing, so it works on any static host without
+rewrite rules.
 
 ## Project layout
 

@@ -1,3 +1,4 @@
+export { BrandMark } from "./BrandMark";
 export { Button, buttonClass, IconButton, type ButtonProps, type IconButtonProps } from "./Button";
 export {
   Fieldset,

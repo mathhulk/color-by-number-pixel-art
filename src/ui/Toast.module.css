@@ -2,13 +2,13 @@
   position: fixed;
   z-index: 60;
   left: 50%;
-  bottom: calc(16px + var(--safe-bottom));
-  width: min(420px, calc(100vw - 24px));
+  bottom: calc(var(--space-4) + var(--safe-bottom));
+  width: min(400px, calc(100vw - var(--space-6)));
   transform: translateX(-50%);
 }
 
 .toast {
-  --gap: 8px;
+  --gap: var(--space-2);
   --offset-y: calc(
     var(--toast-offset-y) * -1 + (var(--toast-index) * var(--gap) * -1) +
       var(--toast-swipe-movement-y)
@@ -20,8 +20,8 @@
   z-index: calc(1000 - var(--toast-index));
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 12px 12px 16px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -29,8 +29,8 @@
   box-shadow: var(--shadow-lg);
   transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
   transition:
-    transform 400ms var(--ease-spring),
-    opacity 300ms;
+    transform 360ms var(--ease-spring),
+    opacity 240ms;
 
   &[data-starting-style],
   &[data-ending-style] {
@@ -49,11 +49,11 @@
 }
 
 .title {
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
 .description {
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }

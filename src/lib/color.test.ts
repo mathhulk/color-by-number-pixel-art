@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { colorName, contrastRatio, hexToRgb, readableTextColor, rgbToHex } from "./color";
+import {
+  colorName,
+  contrastRatio,
+  hexToRgb,
+  paletteNames,
+  readableTextColor,
+  rgbToHex,
+} from "./color";
 import { applyMatrix, IDENTITY, resolveAccent, visionMatrix } from "./cvd";
 
 describe("color", () => {
@@ -49,5 +56,28 @@ describe("color vision", () => {
     expect(resolveAccent("auto", "normal")).toBe("green");
     expect(resolveAccent("auto", "deutan")).toBe("blue");
     expect(resolveAccent("orange", "deutan")).toBe("orange");
+  });
+});
+
+describe("paletteNames", () => {
+  it("disambiguates repeated names by lightness", () => {
+    const names = paletteNames([
+      [76, 175, 80],
+      [46, 125, 50],
+      [229, 57, 53],
+    ]);
+    expect(names).toEqual(["light green", "dark green", "red"]);
+    expect(
+      new Set(
+        paletteNames([
+          [255, 255, 255],
+          [254, 254, 254],
+        ]),
+      ).size,
+    ).toBe(2);
+  });
+
+  it("keeps saturated dark reds red", () => {
+    expect(colorName([183, 28, 28])).toContain("red");
   });
 });

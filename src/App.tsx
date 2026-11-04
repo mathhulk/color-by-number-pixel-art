@@ -1,3 +1,4 @@
+import { LucideProvider } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Route, Router, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
@@ -13,22 +14,24 @@ const ImportView = lazy(() => import("./features/importer/ImportView"));
 export function App() {
   useApplyTheme();
   return (
-    <TooltipProvider delay={400}>
-      <ToastProvider>
-        {/* Hash routing works on any static host (e.g. GitHub Pages) without rewrites. */}
-        {/* oxlint-disable-next-line react/hooks -- wouter takes the location hook itself */}
-        <Router hook={useHashLocation}>
-          <Suspense fallback={<Loading />}>
-            <Switch>
-              <Route path="/play/:id">
-                {(params) => <PlayView key={params.id} id={params.id} />}
-              </Route>
-              <Route path="/import" component={ImportView} />
-              <Route component={LibraryView} />
-            </Switch>
-          </Suspense>
-        </Router>
-      </ToastProvider>
-    </TooltipProvider>
+    <LucideProvider strokeWidth={1.75}>
+      <TooltipProvider delay={400}>
+        <ToastProvider>
+          {/* Hash routing works on any static host (e.g. GitHub Pages) without rewrites. */}
+          {/* oxlint-disable-next-line react/hooks -- wouter takes the location hook itself */}
+          <Router hook={useHashLocation}>
+            <Suspense fallback={<Loading />}>
+              <Switch>
+                <Route path="/play/:id">
+                  {(params) => <PlayView key={params.id} id={params.id} />}
+                </Route>
+                <Route path="/import" component={ImportView} />
+                <Route component={LibraryView} />
+              </Switch>
+            </Suspense>
+          </Router>
+        </ToastProvider>
+      </TooltipProvider>
+    </LucideProvider>
   );
 }

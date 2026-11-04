@@ -26,6 +26,24 @@ import {
 import type { SceneView } from "./types";
 
 const STATE_WIDTH = 2048;
+
+/** Face-local axes, matching U[] and V[] in the vertex shader. */
+const FACE_U: ReadonlyArray<readonly [number, number, number]> = [
+  [0, 0, -1],
+  [0, 0, 1],
+  [1, 0, 0],
+  [1, 0, 0],
+  [1, 0, 0],
+  [-1, 0, 0],
+];
+const FACE_V: ReadonlyArray<readonly [number, number, number]> = [
+  [0, -1, 0],
+  [0, -1, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+  [0, -1, 0],
+  [0, -1, 0],
+];
 const FOV = (40 * Math.PI) / 180;
 
 const VERTEX = /* glsl */ `#version 300 es
@@ -33,7 +51,7 @@ precision highp float;
 precision highp int;
 layout(location = 0) in vec2 a_corner;
 layout(location = 1) in uvec4 a_a; // x, y, z, face
-layout(location = 2) in uvec4 a_b; // color, slot lo, slot hi, random
+layout(location = 2) in uvec4 a_b; // color, slot lo, slot hi, random | shared-edge mask << 8
 
 uniform mat4 u_viewProj;
 uniform vec3 u_offset;
@@ -46,6 +64,7 @@ out vec3 v_normal;
 out float v_y;
 flat out int v_color;
 flat out int v_filled;
+flat out vec4 v_shared;
 
 const vec3 ORIGIN[6] = vec3[6](vec3(1,1,1), vec3(0,1,0), vec3(0,1,0), vec3(0,0,1), vec3(0,1,1), vec3(1,1,0));
 const vec3 U[6] = vec3[6](vec3(0,0,-1), vec3(0,0,1), vec3(1,0,0), vec3(1,0,0), vec3(1,0,0), vec3(-1,0,0));
@@ -61,7 +80,7 @@ void main() {
 
   if (u_intro < 1.0) {
     // Voxels drop into place, bottom layers first.
-    float delay = vox.y / max(u_height, 1.0) * 0.6 + float(a_b.w) / 255.0 * 0.25;
+    float delay = vox.y / max(u_height, 1.0) * 0.6 + float(a_b.w & 255u) / 255.0 * 0.25;
     float t = clamp((u_intro * 1.85 - delay) / 0.5, 0.0, 1.0);
     float e = 1.0 - pow(1.0 - t, 3.0);
     vec3 center = vox + 0.5;
@@ -69,6 +88,8 @@ void main() {
     p.y += (1.0 - e) * (u_height * 0.5 + 4.0);
   }
 
+  uint mask = a_b.w >> 8;
+  v_shared = vec4(float(mask & 1u), float((mask >> 1) & 1u), float((mask >> 2) & 1u), float((mask >> 3) & 1u));
   v_uv = a_corner;
   v_normal = N[face];
   v_color = int(a_b.x);
@@ -85,6 +106,7 @@ in vec3 v_normal;
 in float v_y;
 flat in int v_color;
 flat in int v_filled;
+flat in vec4 v_shared;
 out vec4 o_color;
 
 uniform sampler2D u_palette;
@@ -110,7 +132,9 @@ void main() {
   float diffuse = max(dot(normalize(v_normal), u_lightDir), 0.0);
   float sky = 0.5 + 0.5 * v_normal.y;
   float light = 0.62 + 0.28 * diffuse + 0.1 * sky;
-  float edge = 1.0 - smoothstep(0.0, u_dpr * 1.2, edgeDistance(v_uv, px));
+  // Pixels per cell along each face axis (faces are often foreshortened).
+  vec2 pxAxis = 1.0 / max(vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y))), vec2(1e-5));
+  float edge = gridLine(v_uv, pxAxis, max(1.0, u_dpr), v_shared);
   vec3 col;
 
   if (v_filled == 1) {
@@ -222,11 +246,27 @@ export class Voxel3DView extends GLView implements SceneView {
       const y = Math.floor(voxel / w) % h;
       const z = Math.floor(voxel / (w * h));
       const rand = (Math.imul(voxel, 2654435761) >>> 24) & 255;
+      const index = (vx: number, vy: number, vz: number) =>
+        vx < 0 || vy < 0 || vz < 0 || vx >= w || vy >= h || vz >= p.depth
+          ? -1
+          : vx + w * (vy + h * vz);
       const face = t.face![slot]!;
       const faces = face >= 0 ? [face] : [0, 1, 2, 3, 4, 5];
       for (const f of faces) {
         if (!isFaceExposed(p, x, y, z, f)) continue;
-        data.push(x, y, z, f, t.color[slot]!, slot & 0xffff, slot >>> 16, rand);
+        // Which in-plane neighbors (−U, +U, −V, +V) also show this face, so their
+        // shared edge is drawn once (half on each side).
+        let mask = 0;
+        for (let k = 0; k < 4; k++) {
+          const sign = k % 2 === 0 ? -1 : 1;
+          const base = k < 2 ? FACE_U[f]! : FACE_V[f]!;
+          const nx = x + sign * base[0];
+          const ny = y + sign * base[1];
+          const nz = z + sign * base[2];
+          const ni = index(nx, ny, nz);
+          if (ni >= 0 && p.cells[ni] && isFaceExposed(p, nx, ny, nz, f)) mask |= 1 << k;
+        }
+        data.push(x, y, z, f, t.color[slot]!, slot & 0xffff, slot >>> 16, rand | (mask << 8));
       }
     }
     const instances = Uint16Array.from(data);

@@ -1,0 +1,15 @@
+.mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16);
+
+  & svg {
+    width: 60%;
+    height: 60%;
+    stroke-width: 2;
+  }
+}

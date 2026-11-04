@@ -1,4 +1,5 @@
 .screen {
+  --edge: var(--space-3);
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -18,7 +19,7 @@
   cursor: crosshair;
 
   &:focus-visible {
-    box-shadow: inset 0 0 0 3px var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 }
 
@@ -37,36 +38,40 @@
 .confetti {
   position: absolute;
   inset: 0;
+  z-index: 5;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 5;
 }
 
-/* Floating glass panels */
+/* Floating panels: one padding, one radius, one elevation. */
 .panel {
   display: flex;
   align-items: center;
   gap: 2px;
-  min-height: 56px;
-  padding: 6px;
+  padding: var(--space-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-glass);
   box-shadow: var(--shadow-md);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
+
+  /* Buttons inside a panel nest their radius. */
+  & > button {
+    border-radius: calc(var(--radius-lg) - var(--space-1));
+  }
 }
 
 .topBar {
   position: absolute;
   z-index: 10;
-  top: calc(var(--safe-top) + 10px);
-  left: calc(var(--safe-left) + 10px);
-  right: calc(var(--safe-right) + 10px);
+  top: calc(var(--safe-top) + var(--edge));
+  left: calc(var(--safe-left) + var(--edge));
+  right: calc(var(--safe-right) + var(--edge));
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   pointer-events: none;
 
   & > * {
@@ -74,7 +79,7 @@
   }
 
   & > .panel:first-child {
-    flex: 0 1 380px;
+    flex: 0 1 360px;
     min-width: 0;
   }
 }
@@ -82,13 +87,14 @@
 .titleBlock {
   flex: 1;
   min-width: 0;
-  padding: 0 10px 0 4px;
+  padding: 0 var(--space-3) 0 var(--space-1);
 }
 
 .title {
   overflow: hidden;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.3;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -96,8 +102,8 @@
 .progressRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-2);
+  margin-top: 5px;
 }
 
 .progress {
@@ -105,9 +111,9 @@
 }
 
 .percent {
-  min-width: 3.2em;
-  font-size: 13px;
-  font-weight: 700;
+  min-width: 3ch;
+  font-size: var(--text-xs);
+  font-weight: 600;
   color: var(--text-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -119,16 +125,16 @@
   }
 }
 
-/* Tools: a row above the palette on phones, a column on the left on larger screens. */
+/* Tools: a row above the palette on phones, a column at the left on larger screens. */
 .tools {
   position: absolute;
   z-index: 10;
-  left: calc(var(--safe-left) + 10px);
-  right: calc(var(--safe-right) + 10px);
-  bottom: calc(var(--palette-height, 96px) + var(--safe-bottom) + 20px);
+  left: calc(var(--safe-left) + var(--edge));
+  right: calc(var(--safe-right) + var(--edge));
+  bottom: calc(var(--palette-height) + var(--safe-bottom) + var(--edge) * 2);
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   pointer-events: none;
 
   & > * {
@@ -144,33 +150,46 @@
   }
 }
 
-.toolGroup {
-  padding: 4px;
-  border: 1px solid var(--border);
-  background: var(--surface-glass);
-  box-shadow: var(--shadow-md);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-
-  & > button {
-    min-width: 48px;
-    min-height: 44px;
-  }
-
-  & svg {
-    width: 20px;
-    height: 20px;
-  }
+.dockGroup {
+  composes: panel;
 
   @media (min-width: 768px) and (min-height: 560px) {
     flex-direction: column;
   }
 }
 
-.zoomGroup {
-  composes: panel;
-  min-height: 0;
-  padding: 3px;
+/* The tool picker sits flush inside its panel: square, accent-tinted when active. */
+.toolGroup {
+  height: auto;
+  padding: 0;
+  gap: 2px;
+  background: transparent;
+
+  & > button {
+    flex: none;
+    width: var(--control-md);
+    height: var(--control-md);
+    padding: 0;
+    border-radius: calc(var(--radius-lg) - var(--space-1));
+    color: var(--text);
+
+    & svg {
+      width: var(--icon-md);
+      height: var(--icon-md);
+    }
+
+    @media (hover: hover) {
+      &:hover:not([data-pressed]) {
+        background: var(--surface-3);
+      }
+    }
+
+    &[data-pressed] {
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: none;
+    }
+  }
 
   @media (min-width: 768px) and (min-height: 560px) {
     flex-direction: column;
@@ -178,32 +197,38 @@
 }
 
 .bottomDock {
+  --palette-height: 92px;
   position: absolute;
   z-index: 10;
-  left: calc(var(--safe-left) + 10px);
-  right: calc(var(--safe-right) + 10px);
-  bottom: calc(var(--safe-bottom) + 10px);
+  left: calc(var(--safe-left) + var(--edge));
+  right: calc(var(--safe-right) + var(--edge));
+  bottom: calc(var(--safe-bottom) + var(--edge));
   display: flex;
   justify-content: center;
+}
+
+.screen {
+  --palette-height: 92px;
 }
 
 /* --------------------------------- Palette ------------------------------ */
 
 .palette {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   max-width: 100%;
-  padding: 8px 10px;
+  height: var(--palette-height);
+  padding: var(--space-2);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   background: var(--surface-glass);
   box-shadow: var(--shadow-md);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
 }
 
 .swatch {
@@ -211,64 +236,71 @@
   flex: none;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  width: 64px;
-  padding: 4px 0;
+  justify-content: center;
+  gap: 6px;
+  width: 56px;
+  padding: 0;
   border: 0;
   border-radius: var(--radius-md);
   background: transparent;
   cursor: pointer;
   scroll-snap-align: center;
   touch-action: manipulation;
+  transition: background-color var(--duration) var(--ease-out);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--surface-3);
+    }
+  }
 
   &:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  &[data-checked] {
+    background: var(--accent-softer);
   }
 
   &[data-checked] .swatchLabel {
     color: var(--accent);
   }
-
-  &[data-complete] .swatchChip {
-    box-shadow:
-      inset 0 0 0 1px rgb(0 0 0 / 0.14),
-      inset 0 0 0 22px rgb(255 255 255 / 0.18);
-  }
 }
 
+/* Progress ring around each chip. */
 .swatchRing {
   --pct: 0;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: conic-gradient(var(--accent) calc(var(--pct) * 360deg), var(--surface-3) 0);
-  transition: transform 160ms var(--ease-spring);
-}
-
-.swatch[data-checked] .swatchRing {
-  transform: scale(1.06);
-  box-shadow:
-    0 0 0 3px var(--surface),
-    0 0 0 5px var(--accent);
-}
-
-.swatchChip {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14);
-  font-size: 15px;
-  font-weight: 700;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 360deg), var(--surface-3) 0);
+  transition: scale 160ms var(--ease-spring);
+}
+
+.swatch[data-checked] .swatchRing {
+  scale: 1.05;
+}
+
+.swatchChip {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--surface),
+    inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  font-size: var(--text-md);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 
   & svg {
-    width: 20px;
-    height: 20px;
+    width: var(--icon-md);
+    height: var(--icon-md);
+    stroke-width: 2.5;
   }
 }
 
@@ -276,8 +308,8 @@
   max-width: 100%;
   overflow: hidden;
   font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: 550;
+  line-height: 1;
   color: var(--text-muted);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -293,10 +325,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
   background: var(--bg);
+  text-align: center;
 }
 
 .muted {
@@ -306,28 +338,39 @@
 .exportBody {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .exportPreview {
   display: grid;
   place-items: center;
   min-height: 160px;
-  max-height: 280px;
-  padding: 12px;
+  max-height: 300px;
+  padding: var(--space-4);
   overflow: hidden;
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: repeating-conic-gradient(var(--surface-3) 0 25%, var(--surface-2) 0 50%) 0 0 / 16px
     16px;
   color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: 500;
 
   & img {
     max-width: 100%;
-    max-height: 256px;
+    max-height: 264px;
     object-fit: contain;
     image-rendering: pixelated;
     box-shadow: var(--shadow-md);
   }
+}
+
+.paperPreview img {
+  image-rendering: auto;
+  border-radius: 2px;
+}
+
+.exportNote {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }

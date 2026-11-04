@@ -408,7 +408,9 @@ export default function ImportView() {
       {!source ? (
         <main className={styles.start}>
           <div className={styles.dropZone}>
-            <Upload aria-hidden="true" className={styles.dropIcon} />
+            <span className={styles.dropIcon}>
+              <Upload aria-hidden="true" />
+            </span>
             <h2>Turn any image into a color-by-number</h2>
             <p>
               Drop a photo or pixel art here, paste from the clipboard, or choose a file.

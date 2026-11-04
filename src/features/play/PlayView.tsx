@@ -551,14 +551,16 @@ function PlayScreen({ session }: { session: PlaySession }) {
       </header>
 
       <div ref={toolsRef} className={styles.tools}>
-        <SegmentedControl<Tool>
-          label="Tool"
-          value={tool}
-          onChange={setTool}
-          options={tools}
-          className={styles.toolGroup}
-        />
-        <div className={styles.zoomGroup}>
+        <div className={styles.dockGroup}>
+          <SegmentedControl<Tool>
+            label="Tool"
+            value={tool}
+            onChange={setTool}
+            options={tools}
+            className={styles.toolGroup}
+          />
+        </div>
+        <div className={styles.dockGroup}>
           <IconButton
             label="Zoom in"
             shortcut="+"

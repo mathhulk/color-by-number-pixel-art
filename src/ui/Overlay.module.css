@@ -4,11 +4,9 @@
   position: fixed;
   inset: 0;
   min-height: 100dvh;
-  background: rgb(10 10 14 / 0.36);
+  background: rgb(12 11 10 / 0.32);
   opacity: calc(1 - var(--drawer-swipe-progress, 0));
-  transition: opacity 360ms var(--ease-spring);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  transition: opacity 320ms var(--ease-spring);
 
   &[data-starting-style],
   &[data-ending-style] {
@@ -20,28 +18,29 @@
   }
 }
 
-.title {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.description {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
 .header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px 16px 8px 20px;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-4) var(--space-6);
 
   & > div {
     flex: 1;
     min-width: 0;
-    padding-top: 10px;
+    padding-top: var(--space-2);
   }
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.description {
+  margin-top: var(--space-1);
+  font-size: var(--text-md);
+  color: var(--text-muted);
 }
 
 /* --------------------------------- Sheet --------------------------------- */
@@ -76,7 +75,7 @@
   box-shadow: var(--shadow-lg);
   outline: 0;
   overscroll-behavior: contain;
-  transition: transform 420ms var(--ease-spring);
+  transition: transform 400ms var(--ease-spring);
   will-change: transform;
 
   &[data-swiping] {
@@ -85,7 +84,7 @@
   }
 
   &[data-ending-style] {
-    transition-duration: calc(var(--drawer-swipe-strength, 1) * 360ms);
+    transition-duration: calc(var(--drawer-swipe-strength, 1) * 340ms);
   }
 }
 
@@ -94,6 +93,7 @@
   max-height: calc(88dvh + var(--bleed));
   margin-bottom: calc(-1 * var(--bleed));
   padding-bottom: var(--bleed);
+  border-top: 1px solid var(--border);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
 
@@ -104,7 +104,7 @@
 }
 
 .right .sheet {
-  width: min(400px, calc(100vw - 32px));
+  width: min(400px, calc(100vw - var(--space-8)));
   height: 100%;
   margin-right: calc(-1 * var(--bleed));
   padding-right: var(--bleed);
@@ -119,11 +119,15 @@
 
 .handle {
   flex: none;
-  width: 40px;
-  height: 5px;
-  margin: 8px auto 0;
+  width: 36px;
+  height: 4px;
+  margin: var(--space-2) auto 0;
   border-radius: var(--radius-full);
   background: var(--border-strong);
+}
+
+.bottom .header {
+  padding-top: var(--space-2);
 }
 
 .sheetContent {
@@ -132,11 +136,11 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: 8px 20px calc(24px + var(--safe-bottom));
+  padding: 0 var(--space-6) calc(var(--space-6) + var(--safe-bottom));
 }
 
 .right .sheetContent {
-  padding-bottom: 24px;
+  padding-bottom: var(--space-6);
 }
 
 /* --------------------------------- Dialog -------------------------------- */
@@ -146,48 +150,51 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  padding: calc(var(--space-4) + var(--safe-top)) var(--space-4)
+    calc(var(--space-4) + var(--safe-bottom));
   overflow-y: auto;
 }
 
 .dialog {
   position: relative;
-  width: min(480px, 100%);
-  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
+  width: min(480px, 100%);
+  max-height: calc(100dvh - var(--space-8));
+  border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow-lg);
   outline: 0;
   transition:
-    opacity 200ms var(--ease-out),
-    transform 260ms var(--ease-spring);
+    opacity 180ms var(--ease-out),
+    transform 240ms var(--ease-spring);
 
   &[data-starting-style],
   &[data-ending-style] {
     opacity: 0;
-    transform: translateY(12px) scale(0.97);
+    transform: translateY(8px) scale(0.98);
   }
 }
 
 .wide {
-  width: min(640px, 100%);
+  width: min(600px, 100%);
 }
 
 .dialogBody {
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 20px 20px;
+  padding: 0 var(--space-6) var(--space-6);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap-reverse;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 4px 20px 20px;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border);
 
   @media (max-width: 480px) {
     & > * {

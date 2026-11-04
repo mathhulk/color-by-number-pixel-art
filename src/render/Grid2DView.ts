@@ -51,6 +51,13 @@ uniform float u_complete;
 uniform ivec2 u_cursor;
 ${GLSL_COMMON}
 
+// Whether the cell at c draws grid lines (non-empty and not yet filled).
+float drawsGrid(ivec2 c) {
+  if (c.x < 0 || c.y < 0 || c.x >= int(u_grid.x) || c.y >= int(u_grid.y)) return 0.0;
+  if (texelFetch(u_cells, c, 0).r == 0u) return 0.0;
+  return texelFetch(u_state, c, 0).r > 0.5 ? 0.0 : 1.0;
+}
+
 void main() {
   vec2 dx = dFdx(v_world);
   vec2 dy = dFdy(v_world);
@@ -88,8 +95,14 @@ void main() {
     bool selected = idx == u_selected;
     if (selected && u_highlight > 0.5) col = mix(col, u_accent, 0.32);
     if (u_gridLines > 0.5) {
-      float line = 1.0 - smoothstep(0.0, u_dpr, edgeDistance(uv, px) - 0.2 * u_dpr);
-      col = mix(col, u_ink, line * 0.18 * smoothstep(3.0, 8.0, px / u_dpr));
+      vec4 shared = vec4(
+        drawsGrid(ci + ivec2(-1, 0)),
+        drawsGrid(ci + ivec2(1, 0)),
+        drawsGrid(ci + ivec2(0, -1)),
+        drawsGrid(ci + ivec2(0, 1))
+      );
+      float line = gridLine(uv, vec2(px), max(1.0, u_dpr), shared);
+      col = mix(col, u_ink, line * 0.2 * smoothstep(3.0, 8.0, px / u_dpr));
     }
     if (u_numbers > 0.5) {
       float vis = smoothstep(10.0, 16.0, px / u_dpr);

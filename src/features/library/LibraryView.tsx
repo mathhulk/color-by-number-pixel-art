@@ -32,6 +32,7 @@ import { paintProject } from "@/lib/thumbnail";
 import { useObjectUrl } from "@/state/hooks";
 import { setPendingImport } from "@/state/pendingImport";
 import {
+  BrandMark,
   Button,
   buttonClass,
   ConfirmDialog,
@@ -127,17 +128,23 @@ export function LibraryView() {
       }}
     >
       <header className={styles.header}>
-        <div className={styles.brand}>
-          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={36} height={36} />
-          <h1>Pixel by Number</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <Link href="/import" className={buttonClass({ variant: "primary" })}>
-            <ImagePlus aria-hidden="true" />
-            <span className={styles.hideSmall}>New from image</span>
-            <span className={styles.showSmall}>New</span>
-          </Link>
-          <IconButton label="Settings" icon={<Settings />} onClick={() => setSettingsOpen(true)} />
+        <div className={styles.headerInner}>
+          <div className={styles.brand}>
+            <BrandMark size={32} />
+            <h1>Pixel by Number</h1>
+          </div>
+          <div className={styles.headerActions}>
+            <Link href="/import" className={buttonClass({ variant: "primary" })}>
+              <ImagePlus aria-hidden="true" />
+              <span className={styles.hideSmall}>New from image</span>
+              <span className={styles.showSmall}>New</span>
+            </Link>
+            <IconButton
+              label="Settings"
+              icon={<Settings />}
+              onClick={() => setSettingsOpen(true)}
+            />
+          </div>
         </div>
       </header>
 
@@ -207,7 +214,9 @@ export function LibraryView() {
           <ul className={styles.grid}>
             <li>
               <label className={styles.importCard}>
-                <Upload aria-hidden="true" />
+                <span className={styles.importIcon}>
+                  <Upload aria-hidden="true" />
+                </span>
                 <span className={styles.cardTitle}>Import an image</span>
                 <span className={styles.cardMeta}>Photo, pixel art, or a .vox / project file</span>
                 <input

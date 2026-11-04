@@ -127,7 +127,8 @@ export function colorName(rgb: RGB): string {
   }
 
   let name = HUE_NAMES.find(([max]) => h < max)?.[1] ?? "red";
-  if ((name === "orange" || name === "red" || name === "yellow") && l < 0.42 && s < 0.85) {
+  // Only muted dark reds/oranges read as brown; saturated ones stay red.
+  if ((name === "orange" || name === "red" || name === "yellow") && l < 0.42 && s < 0.6) {
     name = "brown";
   }
   if (name === "orange" && l > 0.75) name = "peach";
@@ -135,4 +136,41 @@ export function colorName(rgb: RGB): string {
 
   const prefix = l < 0.28 ? "dark " : l > 0.78 ? "light " : s < 0.3 ? "muted " : "";
   return prefix + name;
+}
+
+/**
+ * Names for a whole palette that are unique where possible: when two colors
+ * would share a name ("green", "green"), they become "dark green" / "light green"
+ * (and a number is appended if it's still ambiguous).
+ */
+export function paletteNames(colors: readonly RGB[]): string[] {
+  const names = colors.map(colorName);
+  const base = (n: string) => n.replace(/^(dark|light|muted) /, "");
+  const groups = new Map<string, number[]>();
+  names.forEach((n, i) => {
+    const key = base(n);
+    groups.set(key, [...(groups.get(key) ?? []), i]);
+  });
+  for (const [key, members] of groups) {
+    if (members.length < 2) continue;
+    const byLightness = [...members].sort(
+      (a, b) => rgbToLab(colors[a]!)[0] - rgbToLab(colors[b]!)[0],
+    );
+    const labels =
+      byLightness.length === 2
+        ? [`dark ${key}`, `light ${key}`]
+        : byLightness.length === 3
+          ? [`dark ${key}`, key, `light ${key}`]
+          : byLightness.map((_, k) => `${key} ${k + 1}`);
+    byLightness.forEach((i, k) => {
+      names[i] = labels[k]!;
+    });
+  }
+  // Anything still duplicated gets a counter.
+  const seen = new Map<string, number>();
+  return names.map((n) => {
+    const count = (seen.get(n) ?? 0) + 1;
+    seen.set(n, count);
+    return count > 1 ? `${n} ${count}` : n;
+  });
 }

@@ -3,7 +3,7 @@ import { RadioGroup } from "@base-ui/react/radio-group";
 import { Check } from "lucide-react";
 import { type CSSProperties, memo, useEffect, useMemo, useRef } from "react";
 
-import { colorName, hexToRgb, readableTextColor, rgbToHex } from "@/lib/color";
+import { hexToRgb, paletteNames, readableTextColor, rgbToHex } from "@/lib/color";
 import { applyMatrix, type Mat3 } from "@/lib/cvd";
 import type { PlaySession } from "@/lib/session";
 
@@ -30,20 +30,19 @@ export const Palette = memo(function Palette({
   const listRef = useRef<HTMLDivElement>(null);
   const palette = session.project.palette;
 
-  const swatches = useMemo(
-    () =>
-      palette.map((hex, i) => {
-        const rgb = hexToRgb(hex);
-        const shown = applyMatrix(vision, rgb);
-        return {
-          color: i + 1,
-          hex: rgbToHex(shown),
-          text: readableTextColor(shown),
-          name: colorName(rgb),
-        };
-      }),
-    [palette, vision],
-  );
+  const swatches = useMemo(() => {
+    const names = paletteNames(palette.map(hexToRgb));
+    return palette.map((hex, i) => {
+      const rgb = hexToRgb(hex);
+      const shown = applyMatrix(vision, rgb);
+      return {
+        color: i + 1,
+        hex: rgbToHex(shown),
+        text: readableTextColor(shown),
+        name: names[i]!,
+      };
+    });
+  }, [palette, vision]);
 
   // Keep the active swatch in view (e.g. after auto-advance or keyboard shortcuts).
   useEffect(() => {

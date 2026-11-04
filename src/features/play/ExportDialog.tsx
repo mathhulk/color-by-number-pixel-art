@@ -1,4 +1,4 @@
-import { Download, Share2 } from "lucide-react";
+import { Download, Printer, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -6,8 +6,10 @@ import {
   canShareFiles,
   downloadBlob,
   exportArtwork,
-  exportTemplate,
+  exportColoringPage,
   maxScale,
+  type Paper,
+  printImage,
   safeFileName,
   shareBlob,
 } from "@/lib/export";
@@ -15,11 +17,16 @@ import { serializeProject } from "@/lib/library";
 import type { Project } from "@/lib/project";
 import { writeVox } from "@/lib/vox";
 import { useObjectUrl } from "@/state/hooks";
-import { Button, Dialog, SegmentedControl, SliderField, toast } from "@/ui";
+import { Button, Dialog, SegmentedControl, SliderField, SwitchField, toast } from "@/ui";
 
 import styles from "./PlayView.module.css";
 
-type Format = "artwork" | "template" | "snapshot" | "vox" | "project";
+type Format = "artwork" | "page" | "snapshot" | "vox" | "project";
+
+/** US and Canada print on Letter; most of the world uses A4. */
+function defaultPaper(): Paper {
+  return /-(US|CA|MX|PH)$/i.test(navigator.language) ? "letter" : "a4";
+}
 
 interface ExportDialogProps {
   open: boolean;
@@ -43,8 +50,14 @@ export function ExportDialog({
   const [mode, setMode] = useState<"progress" | "complete">(complete ? "complete" : "progress");
   const [background, setBackground] = useState<ArtworkBackground>("transparent");
   const [tinted, setTinted] = useState<"plain" | "tinted">("plain");
-  const [built, setBuilt] = useState<{ key: string; blob?: Blob }>({ key: "" });
-  const key = `${format}|${scale}|${mode}|${background}|${tinted}`;
+  const [paper, setPaper] = useState<Paper>(defaultPaper);
+  const [nameLine, setNameLine] = useState(true);
+  const [built, setBuilt] = useState<{
+    key: string;
+    blob?: Blob;
+    page?: { landscape: boolean; cellMm: number };
+  }>({ key: "" });
+  const key = `${format}|${scale}|${mode}|${background}|${tinted}|${paper}|${nameLine}`;
   const busy = open && built.key !== key;
   const blob = busy ? undefined : built.blob;
   const preview = useObjectUrl(blob?.type.startsWith("image/") ? blob : undefined);
@@ -53,12 +66,12 @@ export function ExportDialog({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    const build = async (): Promise<Blob> => {
+    const build = async (): Promise<Blob | Awaited<ReturnType<typeof exportColoringPage>>> => {
       switch (format) {
         case "artwork":
           return exportArtwork(project, { scale, mode, background });
-        case "template":
-          return exportTemplate(project, { tinted: tinted === "tinted" });
+        case "page":
+          return exportColoringPage(project, { paper, tinted: tinted === "tinted", nameLine });
         case "snapshot":
           return snapshot();
         case "vox":
@@ -81,8 +94,11 @@ export function ExportDialog({
       }
     };
     build()
-      .then((b) => {
-        if (!cancelled) setBuilt({ key, blob: b });
+      .then((out) => {
+        if (cancelled) return;
+        if (out instanceof Blob) setBuilt({ key, blob: out });
+        else
+          setBuilt({ key, blob: out.blob, page: { landscape: out.landscape, cellMm: out.cellMm } });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -92,11 +108,11 @@ export function ExportDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, key, format, scale, mode, background, tinted, project, snapshot]);
+  }, [open, key, format, scale, mode, background, tinted, paper, nameLine, project, snapshot]);
 
   const filename = {
     artwork: `${base}.png`,
-    template: `${base}-template.png`,
+    page: `${base}-coloring-page.png`,
     snapshot: `${base}-3d.png`,
     vox: `${base}.vox`,
     project: `${base}.pixels.json`,
@@ -110,13 +126,13 @@ export function ExportDialog({
       ] as const)
     : ([
         { value: "artwork", label: "Artwork" },
-        { value: "template", label: "Printable" },
+        { value: "page", label: "Coloring page" },
         { value: "project", label: "Project" },
       ] as const);
 
   const describe: Record<Format, string> = {
     artwork: "A crisp PNG of your pixel art, scaled without blurring.",
-    template: "A numbered sheet with a color key — print it and color by hand.",
+    page: "A printable page with numbered squares and a color key at the bottom — great for coloring by hand.",
     snapshot: "A PNG of the current 3D view. Rotate the model first to frame it.",
     vox: "A MagicaVoxel model you can open in voxel editors and 3D tools.",
     project: "A backup of this design and your progress. Import it on any device.",
@@ -132,6 +148,17 @@ export function ExportDialog({
       description={describe[format]}
       actions={
         <>
+          {format === "page" ? (
+            <Button
+              disabled={!blob || busy}
+              onClick={() => {
+                if (blob) printImage(blob, paper, built.page?.landscape ?? false, project.name);
+              }}
+            >
+              <Printer aria-hidden="true" />
+              Print
+            </Button>
+          ) : null}
           {share ? (
             <Button
               disabled={!blob || busy}
@@ -198,19 +225,41 @@ export function ExportDialog({
             />
           </>
         ) : null}
-        {format === "template" ? (
-          <SegmentedControl
-            label="Cells"
-            showLabel
-            value={tinted}
-            onChange={setTinted}
-            options={[
-              { value: "plain", label: "Plain (saves ink)" },
-              { value: "tinted", label: "Lightly tinted" },
-            ]}
-          />
+        {format === "page" ? (
+          <>
+            <SegmentedControl<Paper>
+              label="Paper"
+              showLabel
+              value={paper}
+              onChange={setPaper}
+              options={[
+                { value: "letter", label: "Letter" },
+                { value: "a4", label: "A4" },
+              ]}
+            />
+            <SegmentedControl
+              label="Squares"
+              showLabel
+              value={tinted}
+              onChange={setTinted}
+              options={[
+                { value: "plain", label: "Plain (saves ink)" },
+                { value: "tinted", label: "Color hint" },
+              ]}
+            />
+            <SwitchField label="Name line" checked={nameLine} onChange={setNameLine} />
+            {built.page && !busy && built.page.cellMm < 5 ? (
+              <p className={styles.exportNote}>
+                Squares print at about {built.page.cellMm.toFixed(1)} mm. For little hands, try a
+                design around 32 × 32 or smaller.
+              </p>
+            ) : null}
+          </>
         ) : null}
-        <div className={styles.exportPreview} aria-busy={busy}>
+        <div
+          className={`${styles.exportPreview} ${format === "page" ? styles.paperPreview : ""}`}
+          aria-busy={busy}
+        >
           {preview ? (
             <img src={preview} alt="Export preview" />
           ) : (

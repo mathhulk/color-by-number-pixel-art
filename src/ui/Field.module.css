@@ -1,44 +1,53 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .label {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: 550;
   color: var(--text);
 }
 
 .value {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: 500;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .description {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .input {
   width: 100%;
-  min-height: var(--hit);
-  padding: 0 14px;
-  border: 1px solid var(--border);
+  height: var(--control-md);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
   font-size: 16px; /* prevents iOS zoom on focus */
+
+  @media (pointer: fine) {
+    font-size: var(--text-md);
+  }
+
+  &::placeholder {
+    color: var(--text-subtle);
+  }
 
   &:focus-visible {
     outline: none;
@@ -52,7 +61,7 @@
 .sliderControl {
   display: flex;
   align-items: center;
-  height: var(--hit);
+  height: var(--control-sm);
   touch-action: none;
   cursor: pointer;
 }
@@ -60,7 +69,7 @@
 .sliderTrack {
   position: relative;
   width: 100%;
-  height: 6px;
+  height: 4px;
   border-radius: var(--radius-full);
   background: var(--surface-3);
 }
@@ -71,20 +80,22 @@
 }
 
 .sliderThumb {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #fff;
-  border: 2px solid var(--accent);
-  box-shadow: var(--shadow-md);
-  transition: transform 120ms var(--ease-out);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    var(--shadow-md);
+  transition: scale 120ms var(--ease-out);
 
   &:has(:focus-visible) {
-    box-shadow: var(--focus-ring);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   &[data-dragging] {
-    transform: scale(1.12);
+    scale: 1.1;
   }
 }
 
@@ -94,8 +105,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: var(--hit);
+  gap: var(--space-4);
+  min-height: var(--control-sm);
   cursor: pointer;
 }
 
@@ -109,38 +120,36 @@
 .switch {
   position: relative;
   flex: none;
-  width: 48px;
-  height: 28px;
+  width: 40px;
+  height: 24px;
   padding: 2px;
   border: 0;
   border-radius: var(--radius-full);
-  background: var(--surface-3);
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--border-strong);
   cursor: pointer;
   transition: background-color var(--duration) var(--ease-out);
 
   &[data-checked] {
     background: var(--accent);
-    box-shadow: none;
   }
 
   &:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }
 
 .switchThumb {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: var(--shadow-sm);
-  transition: transform 200ms var(--ease-spring);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 180ms var(--ease-spring);
 
   &[data-checked] {
-    transform: translateX(20px);
+    transform: translateX(16px);
   }
 }
 
@@ -149,6 +158,7 @@
 .segmented {
   display: flex;
   gap: 2px;
+  height: var(--control-md);
   padding: 3px;
   border-radius: var(--radius-md);
   background: var(--surface-3);
@@ -156,18 +166,17 @@
 
 .segment {
   display: inline-flex;
-  flex: 1;
+  flex: 1 0 auto;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
-  padding: 0 10px;
+  padding: 0 var(--space-3);
   border: 0;
   border-radius: calc(var(--radius-md) - 3px);
   background: transparent;
   color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 550;
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -175,19 +184,27 @@
     color var(--duration) var(--ease-out);
 
   & svg {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+  }
+
+  @media (hover: hover) {
+    &:hover:not([data-pressed]) {
+      color: var(--text);
+    }
   }
 
   &[data-pressed] {
     background: var(--surface);
     color: var(--text);
-    box-shadow: var(--shadow-sm);
+    box-shadow:
+      0 0 0 1px var(--border),
+      var(--shadow-sm);
   }
 
   &:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
   }
 }
 
@@ -195,7 +212,7 @@
 
 .progressTrack {
   overflow: hidden;
-  height: 6px;
+  height: 4px;
   border-radius: var(--radius-full);
   background: var(--surface-3);
 }
@@ -212,53 +229,60 @@
 .tabsList {
   position: relative;
   display: flex;
-  gap: 4px;
+  gap: 2px;
+  height: var(--control-md);
+  padding: 3px;
   overflow-x: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
   scrollbar-width: none;
 }
 
 .tab {
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 14px;
+  padding: 0 var(--space-3);
   border: 0;
-  border-radius: var(--radius-full);
+  border-radius: calc(var(--radius-md) - 3px);
   background: transparent;
   color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 550;
   white-space: nowrap;
   cursor: pointer;
-  z-index: 1;
+  transition: color var(--duration) var(--ease-out);
 
   & svg {
-    width: 16px;
-    height: 16px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
   }
 
   &[data-active] {
-    color: var(--accent-contrast);
+    color: var(--text);
   }
 
   &:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
   }
 }
 
 .tabIndicator {
   position: absolute;
-  top: 0;
+  top: 3px;
   left: var(--active-tab-left);
   width: var(--active-tab-width);
   height: var(--active-tab-height);
-  border-radius: var(--radius-full);
-  background: var(--accent);
+  border-radius: calc(var(--radius-md) - 3px);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--border),
+    var(--shadow-sm);
   transition:
-    left 220ms var(--ease-out),
-    width 220ms var(--ease-out);
+    left 200ms var(--ease-out),
+    width 200ms var(--ease-out);
 }
 
 /* -------------------------------- Fieldset ------------------------------ */
@@ -266,19 +290,19 @@
 .fieldset {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
-  min-width: 0;
 }
 
 .legend {
+  margin-bottom: var(--space-1);
   padding: 0;
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-subtle);
 }

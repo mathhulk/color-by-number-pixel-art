@@ -109,6 +109,18 @@ float edgeDistance(vec2 uv, float pxPerCell) {
   vec2 e = min(uv, 1.0 - uv) * pxPerCell;
   return min(e.x, e.y);
 }
+
+// Coverage of a grid line "width" device pixels wide along the cell's edges.
+// "shared" (-x, +x, -y, +y) is 1 where the neighbor across that edge draws its
+// own half of the line: each side then draws width / 2 so the halves meet into a
+// single line instead of stacking into a double-thick one. Edges without such a
+// neighbor (outlines, filled neighbors) draw the full width on this side.
+float gridLine(vec2 uv, vec2 pxPerCell, float width, vec4 shared) {
+  vec4 d = vec4(uv.x, 1.0 - uv.x, uv.y, 1.0 - uv.y) * pxPerCell.xxyy;
+  vec4 w = mix(vec4(width), vec4(width * 0.5), shared);
+  vec4 cov = clamp(w - d + 0.5, 0.0, 1.0);
+  return max(max(cov.x, cov.y), max(cov.z, cov.w));
+}
 `;
 
 let glyphCanvas: HTMLCanvasElement | null = null;
