@@ -80,9 +80,11 @@ bun run dev
 | `bun run format`   | Format everything                             |
 | `bun run test`     | Run unit tests                                |
 
-Every push to `main` builds the app and publishes it to the `gh-pages` branch, which GitHub Pages
-serves at <https://mathhulk.github.io/color-by-number-pixel-art/>. To build for another sub-path,
-set `BASE_PATH=/some-path/`. The app uses hash routing, so it works on any static host without
+Every push to `main` builds the app and deploys it with the official
+[`actions/deploy-pages`](https://github.com/actions/deploy-pages) workflow to
+<https://mathhulk.github.io/color-by-number-pixel-art/>. One-time setup: **Settings → Pages →
+Build and deployment → Source: GitHub Actions**. To build for another sub-path, set
+`BASE_PATH=/some-path/`. The app uses hash routing, so it works on any static host without
 rewrite rules.
 
 ## Project layout

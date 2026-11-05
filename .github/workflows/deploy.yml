@@ -1,34 +1,46 @@
 name: Deploy to GitHub Pages
 
+# Requires Settings → Pages → Build and deployment → Source: "GitHub Actions".
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
+# One deployment at a time; let an in-progress deploy finish.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
+      - id: pages
+        uses: actions/configure-pages@v6
       - run: bun install --frozen-lockfile
       - run: bun run build
         env:
-          # Project pages are served from https://<owner>.github.io/<repo>/
-          BASE_PATH: /${{ github.event.repository.name }}/
-      # Publishes dist/ to the gh-pages branch, which GitHub Pages serves.
-      - uses: peaceiris/actions-gh-pages@v4
+          # e.g. "/color-by-number-pixel-art/" for a project site.
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+      - uses: actions/upload-pages-artifact@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          force_orphan: true
-          commit_message: Deploy ${{ github.sha }}
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
