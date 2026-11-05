@@ -10,13 +10,15 @@ export interface GestureContext {
   getTool: () => Tool;
   getSelected: () => number;
   getSmartSelect: () => boolean;
+  /** Challenge mode: paint only on a clean tap; drags move the view instead. */
+  getTapOnly?: () => boolean;
   /** A tap landed on a different number; the caller switches the active color. */
   onSmartSelect: (color: number) => void;
   /** Whether space is held (temporary hand tool). */
   isSpaceHeld: () => boolean;
 }
 
-type Mode = "none" | "paint" | "fill" | "pan" | "orbit" | "pinch";
+type Mode = "none" | "paint" | "tap" | "fill" | "pan" | "orbit" | "pinch";
 
 const TAP_SLOP = 8;
 /** If a second finger lands this soon after a paint stroke began, the stroke is undone (it was a pinch). */
@@ -101,6 +103,7 @@ export function attachGestures(canvas: HTMLCanvasElement, ctx: GestureContext): 
 
     canvas.focus({ preventScroll: true });
     mode = dragMode(e);
+    if (mode === "paint" && ctx.getTapOnly?.()) mode = "tap";
     start = p;
     last = p;
     moved = false;
@@ -130,7 +133,7 @@ export function attachGestures(canvas: HTMLCanvasElement, ctx: GestureContext): 
     if (!moved && Math.hypot(p.x - start.x, p.y - start.y) > TAP_SLOP) {
       moved = true;
       // Dragging with the bucket moves the view instead.
-      if (mode === "fill") mode = ctx.view.kind === "3d" ? "orbit" : "pan";
+      if (mode === "fill" || mode === "tap") mode = ctx.view.kind === "3d" ? "orbit" : "pan";
     }
 
     const dx = p.x - last.x;
@@ -165,6 +168,18 @@ export function attachGestures(canvas: HTMLCanvasElement, ctx: GestureContext): 
       }
       if (e.type === "pointercancel") ctx.session.cancelStroke();
       else ctx.session.endStroke();
+    } else if (mode === "tap" && !moved && e.type === "pointerup") {
+      // One square per tap.
+      const slot = ctx.view.pick(p.x, p.y);
+      if (slot >= 0) {
+        let color = ctx.getSelected();
+        const actual = ctx.session.colorAt(slot);
+        if (actual !== color && actual > 0 && ctx.getSmartSelect() && !ctx.session.isFilled(slot)) {
+          ctx.onSmartSelect(actual);
+          color = actual;
+        }
+        ctx.session.fill(slot, color);
+      }
     } else if (mode === "fill" && !moved && e.type === "pointerup") {
       const slot = ctx.view.pick(p.x, p.y);
       if (slot >= 0) {

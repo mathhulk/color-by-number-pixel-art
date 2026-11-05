@@ -53,6 +53,9 @@ export async function duplicateProject(id: string): Promise<string | undefined> 
   };
   delete copy.openedAt;
   delete copy.completedAt;
+  delete copy.mistakes;
+  delete copy.mistakesMade;
+  delete copy.log;
   await persistProject(copy);
   return copy.id;
 }
@@ -63,6 +66,9 @@ export async function resetProject(id: string): Promise<void> {
   p.filled.fill(0);
   delete p.completedAt;
   delete p.openedAt;
+  delete p.mistakes;
+  delete p.mistakesMade;
+  delete p.log;
   p.updatedAt = Date.now();
   await persistProject(p);
 }

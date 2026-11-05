@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { Project } from "./project";
+import { buildReplay, ReplayPlayer } from "./replay";
 import { PlaySession } from "./session";
-import { buildTargets, compactPalette } from "./targets";
+import { buildTargets, compactPalette, CORRECT, slotState } from "./targets";
 
 function project2d(rows: string[]): Project {
   const width = rows[0]!.length;
@@ -133,5 +134,91 @@ describe("3D targets", () => {
     p.faceColors![13 * 6] = 3;
     compactPalette(p);
     expect(p.palette).toEqual(["#ff0000", "#00ff00"]);
+  });
+});
+
+describe("mistakes", () => {
+  it("rejects wrong colors unless mistakes are allowed", () => {
+    const s = new PlaySession(project2d(["12"]));
+    expect(s.fill(0, 2)).toBe(false);
+    s.allowMistakes = true;
+    expect(s.fill(0, 2)).toBe(true);
+    expect(s.wrong).toBe(1);
+    expect(s.stateAt(0)).toBe(2);
+    expect(s.project.mistakesMade).toBe(1);
+    expect(s.findMistake()).toBe(0);
+  });
+
+  it("fixes a mistake by painting the right color and blocks completion until then", () => {
+    const s = new PlaySession(project2d(["1"]));
+    s.allowMistakes = true;
+    s.fill(0, 2);
+    expect(s.complete).toBe(false);
+    s.fill(0, 1);
+    expect(s.wrong).toBe(0);
+    expect(s.complete).toBe(true);
+    expect(s.stateAt(0)).toBe(CORRECT);
+    // A correct square can't be painted over.
+    expect(s.fill(0, 2)).toBe(false);
+  });
+
+  it("undoes and redoes mistakes", () => {
+    const s = new PlaySession(project2d(["11"]));
+    s.allowMistakes = true;
+    s.fill(0, 2);
+    s.fill(0, 1);
+    s.undo();
+    expect(s.stateAt(0)).toBe(2);
+    expect(s.wrong).toBe(1);
+    s.undo();
+    expect(s.stateAt(0)).toBe(0);
+    s.redo();
+    s.redo();
+    expect(s.stateAt(0)).toBe(CORRECT);
+  });
+});
+
+describe("replay", () => {
+  it("records every change and replays it forwards and backwards", () => {
+    const s = new PlaySession(project2d(["12"]));
+    s.allowMistakes = true;
+    s.fill(0, 2); // mistake
+    s.fill(0, 1); // fix
+    s.fill(1, 2);
+    s.commitLog();
+    const track = buildReplay(s.project);
+    expect(track.length).toBe(3);
+    expect(track.reconstructed).toBe(0);
+    const player = new ReplayPlayer(s.project, track);
+    expect(player.seek(1)).toEqual([0]);
+    expect(slotState(player.view, 0)).toBe(2);
+    player.seek(3);
+    expect(slotState(player.view, 0)).toBe(CORRECT);
+    expect(slotState(player.view, 1)).toBe(CORRECT);
+    player.seek(0);
+    expect(slotState(player.view, 0)).toBe(0);
+    // The real progress is untouched.
+    expect(s.stateAt(0)).toBe(CORRECT);
+  });
+
+  it("drops cancelled strokes from the log", () => {
+    const s = new PlaySession(project2d(["11"]));
+    s.beginStroke();
+    s.fill(0, 1);
+    s.cancelStroke();
+    s.fill(1, 1);
+    s.commitLog();
+    expect(buildReplay(s.project).length).toBe(1);
+  });
+
+  it("reconstructs fills saved before recording existed", () => {
+    const p = project2d(["12"]);
+    p.filled = Uint8Array.from([1, 1]);
+    const track = buildReplay(p);
+    expect(track.reconstructed).toBe(2);
+    const player = new ReplayPlayer(p, track);
+    player.seek(track.length);
+    expect(slotState(player.view, 0)).toBe(CORRECT);
+    expect(slotState(player.view, 1)).toBe(CORRECT);
   });
 });

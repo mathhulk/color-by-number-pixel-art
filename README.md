@@ -27,6 +27,19 @@ of everything you're working on. All data stays on your device.
   - **Enhance** (daltonization) or **Simulate** filters.
   - Highlight colors that avoid the hues each condition confuses: blue instead of green for
     red/green, magenta for blue/yellow, and a high-contrast option.
+- **Challenge options** (in Settings):
+  - **One tap per square** (off by default): no drag painting or bucket fill; dragging moves the
+    view.
+  - **Allow mistakes** (off by default): wrong colors stick until painted over, and a counter shows
+    how many squares are wrong and what percentage of the picture that is. Tap it to jump to the
+    next mistake.
+  - **Highlight mistakes** (on by default): wrong squares get diagonal stripes and an outline, a
+    pattern rather than just a color, so it works with every color-vision setting.
+- **Replay.** Every fill is recorded. Watch it back from the finish screen or the ⋯ menu: play,
+  pause, step one fill at a time, scrub with the slider and change the speed (0.5×–8×). Keyboard:
+  Space, ← →, Home, End, Esc.
+- **Works offline.** A Workbox service worker precaches the app, and it can be installed to a home
+  screen. When a new version is deployed, a toast offers to reload.
 - **Animations.** Cells pop in, or voxels drop into place, the first time a design is opened.
   Finishing brings a shine sweep, a 3D victory spin and confetti. Reduced motion is respected.
 - **Export:**

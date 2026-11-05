@@ -19,6 +19,12 @@ export interface Settings {
   showColorNames: boolean;
   autoAdvance: boolean;
   smartSelect: boolean;
+  /** Challenge: no drag-painting or bucket fill; every square is tapped on its own. */
+  tapOnly: boolean;
+  /** Challenge: wrong colors stick until painted over. */
+  allowMistakes: boolean;
+  /** Mark wrong squares with stripes and an outline. */
+  showMistakes: boolean;
   haptics: boolean;
   motion: MotionPreference;
   celebrate: boolean;
@@ -36,6 +42,9 @@ export const defaultSettings: Settings = {
   showColorNames: false,
   autoAdvance: true,
   smartSelect: true,
+  tapOnly: false,
+  allowMistakes: false,
+  showMistakes: true,
   haptics: true,
   motion: "system",
   celebrate: true,

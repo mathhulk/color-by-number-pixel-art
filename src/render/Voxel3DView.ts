@@ -1,6 +1,6 @@
 import { hexToRgb, type RGB } from "@/lib/color";
 import type { Project } from "@/lib/project";
-import { FACE_NORMALS, isFaceExposed, slotFor, type Targets } from "@/lib/targets";
+import { FACE_NORMALS, isFaceExposed, slotFor, slotState, type Targets } from "@/lib/targets";
 
 import {
   compileProgram,
@@ -55,7 +55,8 @@ layout(location = 2) in uvec4 a_b; // color, slot lo, slot hi, random | shared-e
 
 uniform mat4 u_viewProj;
 uniform vec3 u_offset;
-uniform sampler2D u_state;
+precision highp usampler2D;
+uniform usampler2D u_state; // 0 empty, 65535 correct, else the wrong color painted
 uniform float u_intro;
 uniform float u_height;
 
@@ -63,7 +64,7 @@ out vec2 v_uv;
 out vec3 v_normal;
 out float v_y;
 flat out int v_color;
-flat out int v_filled;
+flat out int v_state;
 flat out vec4 v_shared;
 
 const vec3 ORIGIN[6] = vec3[6](vec3(1,1,1), vec3(0,1,0), vec3(0,1,0), vec3(0,0,1), vec3(0,1,1), vec3(1,1,0));
@@ -76,7 +77,7 @@ void main() {
   vec3 vox = vec3(a_a.xyz);
   vec3 p = vox + ORIGIN[face] + U[face] * a_corner.x + V[face] * a_corner.y;
   int slot = int(a_b.y) | (int(a_b.z) << 16);
-  v_filled = texelFetch(u_state, ivec2(slot % ${STATE_WIDTH}, slot / ${STATE_WIDTH}), 0).r > 0.5 ? 1 : 0;
+  v_state = int(texelFetch(u_state, ivec2(slot % ${STATE_WIDTH}, slot / ${STATE_WIDTH}), 0).r);
 
   if (u_intro < 1.0) {
     // Voxels drop into place, bottom layers first.
@@ -105,7 +106,7 @@ in vec2 v_uv;
 in vec3 v_normal;
 in float v_y;
 flat in int v_color;
-flat in int v_filled;
+flat in int v_state;
 flat in vec4 v_shared;
 out vec4 o_color;
 
@@ -119,6 +120,8 @@ uniform vec3 u_accent;
 uniform vec3 u_paper;
 uniform vec3 u_ink;
 uniform float u_complete;
+uniform float u_mistakes;
+uniform vec3 u_mistake;
 uniform float u_height;
 uniform float u_dpr;
 uniform vec3 u_lightDir;
@@ -137,9 +140,21 @@ void main() {
   float edge = gridLine(v_uv, pxAxis, max(1.0, u_dpr), v_shared);
   vec3 col;
 
-  if (v_filled == 1) {
+  if (v_state == 65535) {
     col = shown * light;
     col = mix(col, col * 0.7, edge * 0.35);
+  } else if (v_state != 0) {
+    // Painted with the wrong color.
+    col = vision(texelFetch(u_palette, ivec2(v_state - 1, 0), 0).rgb) * light;
+    col = mix(col, col * 0.7, edge * 0.35);
+    if (u_mistakes > 0.5) {
+      col = markMistake(col, v_uv, pxAxis, u_dpr, u_mistake);
+      float vis = u_numbers * smoothstep(12.0, 20.0, px / u_dpr);
+      if (vis > 0.0) {
+        float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+        col = mix(col, lum < 0.42 ? vec3(1.0) : u_ink, numberMask(v_color, v_uv, dx, dy) * vis);
+      }
+    }
   } else {
     col = mix(u_paper, shown, u_tint);
     bool selected = v_color == u_selected;
@@ -186,7 +201,7 @@ export class Voxel3DView extends GLView implements SceneView {
 
   private project: Project | null = null;
   private targets: Targets | null = null;
-  private state = new Uint8Array(0);
+  private state = new Uint16Array(0);
   private stateRows = 1;
   private dirtyRows: { min: number; max: number } | null = null;
   private selected = 0;
@@ -229,8 +244,8 @@ export class Voxel3DView extends GLView implements SceneView {
     this.project = project;
     this.targets = targets;
     this.stateRows = Math.max(1, Math.ceil(targets.count / STATE_WIDTH));
-    this.state = new Uint8Array(STATE_WIDTH * this.stateRows);
-    for (let i = 0; i < targets.count; i++) this.state[i] = project.filled[i] ? 255 : 0;
+    this.state = new Uint16Array(STATE_WIDTH * this.stateRows);
+    for (let i = 0; i < targets.count; i++) this.state[i] = slotState(project, i);
     this.upload(project, targets);
     if (!sameSize) this.fit(false);
   }
@@ -292,9 +307,9 @@ export class Voxel3DView extends GLView implements SceneView {
 
     for (const tex of [this.stateTex, this.paletteTex]) if (tex) gl.deleteTexture(tex);
     this.stateTex = createDataTexture(gl, STATE_WIDTH, this.stateRows, this.state, {
-      internalFormat: gl.R8,
-      format: gl.RED,
-      type: gl.UNSIGNED_BYTE,
+      internalFormat: gl.R16UI,
+      format: gl.RED_INTEGER,
+      type: gl.UNSIGNED_SHORT,
     });
     const palette = new Uint8Array(p.palette.length * 4);
     p.palette.forEach((hex, i) => palette.set([...hexToRgb(hex), 255], i * 4));
@@ -312,11 +327,11 @@ export class Voxel3DView extends GLView implements SceneView {
     const t = this.targets;
     if (!p || !t) return;
     if (slots.length === 0) {
-      for (let i = 0; i < t.count; i++) this.state[i] = p.filled[i] ? 255 : 0;
+      for (let i = 0; i < t.count; i++) this.state[i] = slotState(p, i);
       this.dirtyRows = { min: 0, max: this.stateRows - 1 };
     }
     for (const s of slots) {
-      this.state[s] = p.filled[s] ? 255 : 0;
+      this.state[s] = slotState(p, s);
       const row = Math.floor(s / STATE_WIDTH);
       const d = this.dirtyRows;
       this.dirtyRows = d
@@ -482,8 +497,8 @@ export class Voxel3DView extends GLView implements SceneView {
         min,
         STATE_WIDTH,
         max - min + 1,
-        gl.RED,
-        gl.UNSIGNED_BYTE,
+        gl.RED_INTEGER,
+        gl.UNSIGNED_SHORT,
         this.state.subarray(min * STATE_WIDTH, (max + 1) * STATE_WIDTH),
       );
       this.dirtyRows = null;
@@ -511,6 +526,13 @@ export class Voxel3DView extends GLView implements SceneView {
     gl.uniform3f(u.u_paper!, paper[0] / 255, paper[1] / 255, paper[2] / 255);
     gl.uniform3f(u.u_ink!, ink[0] / 255, ink[1] / 255, ink[2] / 255);
     gl.uniform1f(u.u_complete!, this.complete);
+    gl.uniform1f(u.u_mistakes!, style.showMistakes ? 1 : 0);
+    gl.uniform3f(
+      u.u_mistake!,
+      style.mistake[0] / 255,
+      style.mistake[1] / 255,
+      style.mistake[2] / 255,
+    );
     // Light follows the camera loosely so the visible side is always readable.
     const lx = Math.sin(this.yaw + 0.6);
     const lz = Math.cos(this.yaw + 0.6);

@@ -9,7 +9,11 @@ export interface RenderStyle {
   /** 0–1: how much of each cell's color shows through before it is filled. */
   tint: number;
   highlightSelected: boolean;
+  /** Mark wrongly painted cells with stripes and an outline. */
+  showMistakes: boolean;
   accent: RGB;
+  /** Outline color for mistakes. */
+  mistake: RGB;
   vision: Mat3;
   dark: boolean;
   reducedMotion: boolean;

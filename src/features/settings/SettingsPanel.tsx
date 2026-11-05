@@ -156,7 +156,7 @@ export function SettingsPanel() {
         />
         <SwitchField
           label="Tap a number to pick it"
-          description="Tapping a cell with another number switches to that color."
+          description="Tapping a cell with another number switches to that color. Off while mistakes are allowed."
           checked={s.smartSelect}
           onChange={(v) => s.set("smartSelect", v)}
         />
@@ -167,6 +167,27 @@ export function SettingsPanel() {
             onChange={(v) => s.set("haptics", v)}
           />
         ) : null}
+      </Fieldset>
+
+      <Fieldset legend="Challenge">
+        <SwitchField
+          label="One tap per square"
+          description="No drag painting or bucket fill. Dragging moves the view instead."
+          checked={s.tapOnly}
+          onChange={(v) => s.set("tapOnly", v)}
+        />
+        <SwitchField
+          label="Allow mistakes"
+          description="Wrong colors stick until you paint over them, and the art isn't done until every square is right."
+          checked={s.allowMistakes}
+          onChange={(v) => s.set("allowMistakes", v)}
+        />
+        <SwitchField
+          label="Highlight mistakes"
+          description="Marks wrong squares with stripes and an outline. Turn off to find them yourself."
+          checked={s.showMistakes}
+          onChange={(v) => s.set("showMistakes", v)}
+        />
       </Fieldset>
 
       <Fieldset legend="Appearance">

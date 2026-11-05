@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 import { requestPersistentStorage } from "./lib/db";
+import { registerServiceWorker } from "./pwa";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -12,3 +13,4 @@ createRoot(document.getElementById("root")!).render(
 );
 
 void requestPersistentStorage();
+registerServiceWorker();

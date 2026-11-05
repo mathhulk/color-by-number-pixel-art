@@ -153,7 +153,7 @@ export function paletteNames(colors: readonly RGB[]): string[] {
   });
   for (const [key, members] of groups) {
     if (members.length < 2) continue;
-    const byLightness = [...members].sort(
+    const byLightness = members.toSorted(
       (a, b) => rgbToLab(colors[a]!)[0] - rgbToLab(colors[b]!)[0],
     );
     const labels =

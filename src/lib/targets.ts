@@ -1,5 +1,14 @@
 import type { Project } from "./project";
 
+/** Slot state for a correctly filled slot (see `slotState`). */
+export const CORRECT = 0xffff;
+
+/** 0 = empty, `CORRECT` = filled correctly, otherwise the wrong color painted there. */
+export function slotState(p: Pick<Project, "filled" | "mistakes">, slot: number): number {
+  if (p.filled[slot]) return CORRECT;
+  return p.mistakes?.[slot] ?? 0;
+}
+
 /** Face order used everywhere: +x, -x, +y, -y, +z, -z. */
 export const FACE_NORMALS: ReadonlyArray<readonly [number, number, number]> = [
   [1, 0, 0],
@@ -123,6 +132,11 @@ export function normalizeFilled(p: Project, t: Targets): void {
     const next = new Uint8Array(t.count);
     next.set(p.filled.subarray(0, Math.min(p.filled.length, t.count)));
     p.filled = next;
+  }
+  if (p.mistakes && p.mistakes.length !== t.count) {
+    const next = new Uint16Array(t.count);
+    next.set(p.mistakes.subarray(0, Math.min(p.mistakes.length, t.count)));
+    p.mistakes = next;
   }
 }
 

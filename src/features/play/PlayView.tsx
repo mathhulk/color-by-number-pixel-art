@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   Brush,
   Download,
+  Clapperboard,
   Expand,
   Hand,
   LocateFixed,
@@ -12,6 +13,7 @@ import {
   Rotate3d,
   Settings,
   Sparkles,
+  TriangleAlert,
   Undo2,
   ZoomIn,
   ZoomOut,
@@ -22,6 +24,7 @@ import { useLocation } from "wouter";
 import { getProject, persistProject } from "@/lib/library";
 import type { Project } from "@/lib/project";
 import { progressLabel } from "@/lib/project";
+import { buildReplay, ReplayPlayer } from "@/lib/replay";
 import { PlaySession } from "@/lib/session";
 import { Grid2DView } from "@/render/Grid2DView";
 import type { SceneView } from "@/render/types";
@@ -45,6 +48,7 @@ import { confetti } from "./confetti";
 import { ExportDialog } from "./ExportDialog";
 import { attachGestures, type Tool } from "./gestures";
 import { Palette } from "./Palette";
+import { ReplayBar } from "./ReplayBar";
 
 import styles from "./PlayView.module.css";
 
@@ -123,14 +127,21 @@ function PlayScreen({ session }: { session: PlaySession }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [doneOpen, setDoneOpen] = useState(false);
+  const [replay, setReplay] = useState<ReplayPlayer | null>(null);
   const spaceHeld = useRef(false);
   const findFrom = useRef(-1);
+  const mistakeFrom = useRef(-1);
+  // One-tap mode hides the bucket, so fall back to the brush if it was selected.
+  const activeTool: Tool = settings.tapOnly && tool === "fill" ? "paint" : tool;
+  useEffect(() => {
+    session.allowMistakes = settings.allowMistakes;
+  }, [session, settings.allowMistakes]);
   // Decided on first render so React's dev double-mount still shows the intro.
   const firstOpen = useRef(!project.openedAt);
 
   // Latest values for imperative event handlers.
-  const live = useRef({ tool, selected, settings, cursor });
-  live.current = { tool, selected, settings, cursor };
+  const live = useRef({ tool: activeTool, selected, settings, cursor, replaying: false });
+  live.current = { tool: activeTool, selected, settings, cursor, replaying: replay !== null };
 
   /* ----------------------------- Renderer ------------------------------ */
 
@@ -152,9 +163,13 @@ function PlayScreen({ session }: { session: PlaySession }) {
     const offGestures = attachGestures(canvas, {
       view,
       session,
-      getTool: () => live.current.tool,
+      // During a replay the canvas only moves; nothing can be painted.
+      getTool: () => (live.current.replaying ? "move" : live.current.tool),
       getSelected: () => live.current.selected,
-      getSmartSelect: () => live.current.settings.smartSelect,
+      // Picking the tapped number would make mistakes impossible.
+      getSmartSelect: () =>
+        live.current.settings.smartSelect && !live.current.settings.allowMistakes,
+      getTapOnly: () => live.current.settings.tapOnly,
       onSmartSelect: (c) => setSelected(c),
       isSpaceHeld: () => spaceHeld.current,
     });
@@ -207,6 +222,7 @@ function PlayScreen({ session }: { session: PlaySession }) {
 
   const save = useCallback(() => {
     project.updatedAt = Date.now();
+    session.commitLog();
     persistProject(project, session.targets).catch((error: unknown) => {
       toast("Couldn't save progress", error instanceof Error ? error.message : String(error));
     });
@@ -237,9 +253,17 @@ function PlayScreen({ session }: { session: PlaySession }) {
 
   const wasComplete = useRef(snap.complete);
   const lastDone = useRef(snap.done);
+  const lastWrong = useRef(snap.wrong);
   useEffect(() => {
     const increased = snap.done > lastDone.current;
     lastDone.current = snap.done;
+    if (snap.wrong > lastWrong.current) {
+      setAnnouncement(
+        `Wrong color. ${snap.wrong} ${snap.wrong === 1 ? "square" : "squares"} to fix.`,
+      );
+      if (settings.haptics) navigator.vibrate?.([12, 40, 12]);
+    }
+    lastWrong.current = snap.wrong;
     if (snap.complete && !wasComplete.current) {
       wasComplete.current = true;
       project.completedAt = Date.now();
@@ -284,6 +308,33 @@ function PlayScreen({ session }: { session: PlaySession }) {
     if (!is3d) setCursor(slot);
   }, [session, selected, is3d]);
 
+  const findMistake = useCallback(() => {
+    const slot = session.findMistake(mistakeFrom.current);
+    if (slot < 0) return;
+    mistakeFrom.current = slot;
+    viewRef.current?.focusSlot(slot);
+    if (!is3d) setCursor(slot);
+    setAnnouncement(`This square should be number ${session.colorAt(slot)}.`);
+  }, [session, is3d]);
+
+  const startReplay = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    session.commitLog();
+    const player = new ReplayPlayer(project, buildReplay(project, session.targets));
+    setDoneOpen(false);
+    setCursor(-1);
+    view.setProject(player.view, session.targets);
+    view.fit();
+    setReplay(player);
+  }, [project, session]);
+
+  const exitReplay = useCallback(() => {
+    viewRef.current?.setProject(project, session.targets);
+    viewRef.current?.setCursor(-1);
+    setReplay(null);
+  }, [project, session]);
+
   const cycleColor = useCallback(
     (dir: 1 | -1) => {
       const n = project.palette.length;
@@ -317,6 +368,8 @@ function PlayScreen({ session }: { session: PlaySession }) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTyping(e.target) || document.querySelector("[role=dialog], [role=alertdialog]")) return;
+      // The replay bar has its own shortcuts.
+      if (live.current.replaying) return;
       const view = viewRef.current;
       const mod = e.ctrlKey || e.metaKey;
       const onCanvas = e.target === canvasRef.current;
@@ -365,7 +418,7 @@ function PlayScreen({ session }: { session: PlaySession }) {
         case "B":
         case "g":
         case "G":
-          setTool("fill");
+          if (!live.current.settings.tapOnly) setTool("fill");
           break;
         case "h":
         case "H":
@@ -382,6 +435,10 @@ function PlayScreen({ session }: { session: PlaySession }) {
         case "n":
         case "N":
           findNext();
+          break;
+        case "m":
+        case "M":
+          findMistake();
           break;
         case "+":
         case "=":
@@ -410,14 +467,14 @@ function PlayScreen({ session }: { session: PlaySession }) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [session, is3d, cycleColor, findNext, moveCursor]);
+  }, [session, is3d, cycleColor, findNext, findMistake, moveCursor]);
 
   const snapshot = useCallback(() => {
     const view = viewRef.current;
     return view ? view.snapshot() : Promise.reject(new Error("Nothing to capture"));
   }, []);
 
-  const tools = [
+  const allTools = [
     {
       value: "paint" as const,
       label: "Paint (P)",
@@ -437,11 +494,14 @@ function PlayScreen({ session }: { session: PlaySession }) {
       iconOnly: true,
     },
   ];
+  const tools = settings.tapOnly ? allTools.filter((t) => t.value !== "fill") : allTools;
+  const wrongPct = snap.total ? (snap.wrong / snap.total) * 100 : 0;
+  const canReplay = snap.done + snap.wrong > 0 || session.logLength > 0;
 
   const pct = progressLabel(snap.done, snap.total);
 
   return (
-    <div className={styles.screen} data-tool={tool}>
+    <div className={styles.screen} data-tool={replay ? "move" : activeTool}>
       <a href="#play-canvas" className="skip-link">
         Skip to canvas
       </a>
@@ -473,7 +533,10 @@ function PlayScreen({ session }: { session: PlaySession }) {
         <div className={styles.panel}>
           <IconButton label="Back to library" icon={<ArrowLeft />} onClick={() => navigate("/")} />
           <div className={styles.titleBlock}>
-            <h1 className={styles.title}>{project.name}</h1>
+            <h1 className={styles.title}>
+              {replay ? <span className={styles.replayLabel}>Replay · </span> : null}
+              {project.name}
+            </h1>
             <div className={styles.progressRow}>
               <ProgressBar
                 value={snap.done}
@@ -486,8 +549,25 @@ function PlayScreen({ session }: { session: PlaySession }) {
               </span>
             </div>
           </div>
+          {snap.wrong > 0 && !replay ? (
+            <button
+              type="button"
+              className={styles.mistakes}
+              onClick={findMistake}
+              aria-label={`${snap.wrong} wrong ${snap.wrong === 1 ? "square" : "squares"}, ${wrongPct.toFixed(1)} percent. Show the next one.`}
+            >
+              <TriangleAlert aria-hidden="true" />
+              <span>
+                {snap.wrong.toLocaleString()} wrong
+                <span className={styles.mistakesPct}>
+                  {" "}
+                  · {wrongPct < 1 ? wrongPct.toFixed(1) : Math.round(wrongPct)}%
+                </span>
+              </span>
+            </button>
+          ) : null}
         </div>
-        <div className={styles.panel}>
+        <div className={styles.panel} hidden={replay !== null}>
           <IconButton
             label="Undo"
             shortcut="⌘Z"
@@ -529,6 +609,12 @@ function PlayScreen({ session }: { session: PlaySession }) {
               { label: "Find next cell", icon: <LocateFixed />, onSelect: findNext },
               { label: "Fit to screen", icon: <Expand />, onSelect: () => viewRef.current?.fit() },
               { label: "Export…", icon: <Download />, onSelect: () => setExportOpen(true) },
+              ...(snap.wrong > 0
+                ? [{ label: "Show next mistake", icon: <TriangleAlert />, onSelect: findMistake }]
+                : []),
+              ...(canReplay
+                ? [{ label: "Watch replay", icon: <Clapperboard />, onSelect: startReplay }]
+                : []),
               ...(snap.complete
                 ? [
                     {
@@ -550,11 +636,11 @@ function PlayScreen({ session }: { session: PlaySession }) {
         </div>
       </header>
 
-      <div ref={toolsRef} className={styles.tools}>
+      <div ref={toolsRef} className={styles.tools} hidden={replay !== null}>
         <div className={styles.dockGroup}>
           <SegmentedControl<Tool>
             label="Tool"
-            value={tool}
+            value={activeTool}
             onChange={setTool}
             options={tools}
             className={styles.toolGroup}
@@ -583,14 +669,18 @@ function PlayScreen({ session }: { session: PlaySession }) {
       </div>
 
       <div ref={bottomRef} className={styles.bottomDock}>
-        <Palette
-          session={session}
-          version={snap.version}
-          selected={selected}
-          onSelect={setSelected}
-          vision={style.vision}
-          showNames={settings.showColorNames}
-        />
+        {replay ? (
+          <ReplayBar player={replay} view={viewRef.current} onExit={exitReplay} />
+        ) : (
+          <Palette
+            session={session}
+            version={snap.version}
+            selected={selected}
+            onSelect={setSelected}
+            vision={style.vision}
+            showNames={settings.showColorNames}
+          />
+        )}
       </div>
 
       <output className="visually-hidden" aria-live="polite">
@@ -628,6 +718,7 @@ function PlayScreen({ session }: { session: PlaySession }) {
           setExportOpen(true);
         }}
         onLibrary={() => navigate("/")}
+        onReplay={startReplay}
       />
     </div>
   );
@@ -640,6 +731,7 @@ function CompletionDialog({
   cells,
   onExport,
   onLibrary,
+  onReplay,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -647,17 +739,27 @@ function CompletionDialog({
   cells: number;
   onExport: () => void;
   onLibrary: () => void;
+  onReplay: () => void;
 }) {
+  const mistakes = project.mistakesMade ?? 0;
+  const pieces = project.kind === "3d" ? "pieces" : "squares";
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
       title="Masterpiece complete!"
-      description={`You filled all ${cells.toLocaleString()} ${project.kind === "3d" ? "pieces" : "cells"} of “${project.name}” using ${project.palette.length} colors.`}
+      description={`You filled all ${cells.toLocaleString()} ${pieces} of “${project.name}” using ${project.palette.length} colors${
+        mistakes > 0
+          ? `, with ${mistakes.toLocaleString()} ${mistakes === 1 ? "mistake" : "mistakes"} along the way.`
+          : "."
+      }`}
       actions={
         <>
-          <Button onClick={() => onOpenChange(false)}>Admire it</Button>
           <Button onClick={onLibrary}>Library</Button>
+          <Button onClick={onReplay}>
+            <Clapperboard aria-hidden="true" />
+            Watch replay
+          </Button>
           <Button variant="primary" onClick={onExport}>
             <Download aria-hidden="true" />
             Export

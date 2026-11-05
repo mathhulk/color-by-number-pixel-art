@@ -110,6 +110,21 @@ float edgeDistance(vec2 uv, float pxPerCell) {
   return min(e.x, e.y);
 }
 
+// Marks a wrongly painted cell: diagonal stripes plus an outline. It's a
+// pattern rather than just a color, so it reads for every kind of color vision.
+vec3 markMistake(vec3 col, vec2 uv, vec2 pxPerCell, float dpr, vec3 mark) {
+  float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+  vec3 stripeColor = lum < 0.5 ? vec3(1.0) : vec3(0.0);
+  float s = fract((uv.x + uv.y) * 3.0);
+  float w = max(fwidth(uv.x + uv.y) * 3.0, 1e-4);
+  float stripe = smoothstep(0.5 - w, 0.5 + w, s) * (1.0 - smoothstep(1.0 - w, 1.0, s));
+  col = mix(col, stripeColor, stripe * 0.32);
+  vec4 d = vec4(uv.x, 1.0 - uv.x, uv.y, 1.0 - uv.y) * pxPerCell.xxyy;
+  float edge = min(min(d.x, d.y), min(d.z, d.w));
+  float ring = 1.0 - smoothstep(2.0 * dpr, 2.0 * dpr + 1.0, edge);
+  return mix(col, mark, ring);
+}
+
 // Coverage of a grid line "width" device pixels wide along the cell's edges.
 // "shared" (-x, +x, -y, +y) is 1 where the neighbor across that edge draws its
 // own half of the line: each side then draws width / 2 so the halves meet into a

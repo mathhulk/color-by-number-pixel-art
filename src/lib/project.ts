@@ -28,10 +28,29 @@ export interface Project {
   numberMode: NumberMode;
   /** Per-face colors (`cell * 6 + face`) when `numberMode === "face"`. */
   faceColors?: Uint16Array;
-  /** One byte per target slot (see `buildTargets`); 1 = filled. */
+  /** One byte per target slot (see `buildTargets`); 1 = filled correctly. */
   filled: Uint8Array;
+  /** Per slot, the wrong color painted there (0 = none). Only used when mistakes are allowed. */
+  mistakes?: Uint16Array;
+  /** How many wrong fills were ever made (shown when the design is finished). */
+  mistakesMade?: number;
+  /** Every change to a slot, in order, for the replay. */
+  log?: FillLog;
   /** Where the design came from, e.g. "Sample" or "sunset.jpg". */
   source?: string;
+}
+
+/**
+ * An append-only record of slot changes. Slot states are encoded as in
+ * `slotState`: 0 empty, `CORRECT` (0xffff) filled correctly, otherwise the
+ * wrong color painted there.
+ */
+export interface FillLog {
+  slot: Uint32Array;
+  before: Uint16Array;
+  after: Uint16Array;
+  /** Unix time in ms. */
+  time: Float64Array;
 }
 
 /** Lightweight record used by the library so it never loads full projects. */

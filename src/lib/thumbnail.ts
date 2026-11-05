@@ -25,7 +25,10 @@ function paint2D(p: Project, mode: PaintOptions["mode"]): HTMLCanvasElement {
     const c = p.cells[i]!;
     if (c === 0) continue;
     const base = palette[c - 1]!;
-    const rgb = mode === "complete" || p.filled[i] ? base : unfilledColor(base);
+    // In progress mode, squares painted the wrong color show that color.
+    const wrong = mode === "progress" ? (p.mistakes?.[i] ?? 0) : 0;
+    const rgb =
+      mode === "complete" || p.filled[i] ? base : wrong ? palette[wrong - 1]! : unfilledColor(base);
     img.data[i * 4] = rgb[0];
     img.data[i * 4 + 1] = rgb[1];
     img.data[i * 4 + 2] = rgb[2];
@@ -103,14 +106,17 @@ function paint3D(
         p.faceColors && p.numberMode === "face" ? p.faceColors[i * 6 + f]! : p.cells[i]!;
       if (colorIndex === 0) continue;
       let filled = mode === "complete";
+      let wrong = 0;
       if (!filled) {
         const slot = targets.faceSlot
           ? targets.faceSlot[i * 6 + f]!
           : (targets.voxelSlot?.[i] ?? -1);
         filled = slot >= 0 && p.filled[slot] === 1;
+        wrong = slot >= 0 ? (p.mistakes?.[slot] ?? 0) : 0;
       }
       const base = palette[colorIndex - 1]!;
-      const rgb = shadeRgb(filled ? base : unfilledColor(base), shading[f]!);
+      const shown = filled ? base : wrong ? palette[wrong - 1]! : unfilledColor(base);
+      const rgb = shadeRgb(shown, shading[f]!);
       ctx.fillStyle = `rgb(${rgb[0] | 0} ${rgb[1] | 0} ${rgb[2] | 0})`;
       ctx.strokeStyle = ctx.fillStyle;
       ctx.lineWidth = 0.6;

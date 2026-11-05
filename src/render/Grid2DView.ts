@@ -1,6 +1,6 @@
 import { hexToRgb, type RGB } from "@/lib/color";
 import type { Project } from "@/lib/project";
-import type { Targets } from "@/lib/targets";
+import { slotState, type Targets } from "@/lib/targets";
 
 import {
   compileProgram,
@@ -33,7 +33,7 @@ in vec2 v_world;
 out vec4 o_color;
 
 uniform usampler2D u_cells;
-uniform sampler2D u_state;
+uniform usampler2D u_state; // 0 empty, 65535 correct, else the wrong color painted
 uniform sampler2D u_palette;
 uniform vec2 u_grid;
 uniform float u_pxPerCell;
@@ -48,6 +48,8 @@ uniform vec3 u_paper;
 uniform vec3 u_ink;
 uniform float u_intro;
 uniform float u_complete;
+uniform float u_mistakes;
+uniform vec3 u_mistake;
 uniform ivec2 u_cursor;
 ${GLSL_COMMON}
 
@@ -55,7 +57,7 @@ ${GLSL_COMMON}
 float drawsGrid(ivec2 c) {
   if (c.x < 0 || c.y < 0 || c.x >= int(u_grid.x) || c.y >= int(u_grid.y)) return 0.0;
   if (texelFetch(u_cells, c, 0).r == 0u) return 0.0;
-  return texelFetch(u_state, c, 0).r > 0.5 ? 0.0 : 1.0;
+  return texelFetch(u_state, c, 0).r == 0u ? 1.0 : 0.0;
 }
 
 void main() {
@@ -84,12 +86,23 @@ void main() {
     alpha = clamp(t * 1.5, 0.0, 1.0);
   }
 
-  bool filled = texelFetch(u_state, ci, 0).r > 0.5;
+  uint st = texelFetch(u_state, ci, 0).r;
   vec3 shown = vision(texelFetch(u_palette, ivec2(idx - 1, 0), 0).rgb);
   vec3 col;
 
-  if (filled) {
+  if (st == 65535u) {
     col = shown;
+  } else if (st != 0u) {
+    // Painted with the wrong color.
+    col = vision(texelFetch(u_palette, ivec2(int(st) - 1, 0), 0).rgb);
+    if (u_mistakes > 0.5) {
+      col = markMistake(col, uv, vec2(px), u_dpr, u_mistake);
+      float vis = u_numbers * smoothstep(10.0, 16.0, px / u_dpr);
+      if (vis > 0.0) {
+        float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+        col = mix(col, lum < 0.42 ? vec3(1.0) : u_ink, numberMask(idx, uv, dx, dy) * vis);
+      }
+    }
   } else {
     col = mix(u_paper, shown, u_tint);
     bool selected = idx == u_selected;
@@ -147,7 +160,7 @@ export class Grid2DView extends GLView implements SceneView {
   private paletteTex: WebGLTexture | null = null;
 
   private project: Project | null = null;
-  private state = new Uint8Array(0);
+  private state = new Uint16Array(0);
   private dirty: { x0: number; y0: number; x1: number; y1: number } | null = null;
   private selected = 0;
   private cursor = -1;
@@ -188,8 +201,8 @@ export class Grid2DView extends GLView implements SceneView {
     const sameSize =
       this.project?.width === project.width && this.project.height === project.height;
     this.project = project;
-    this.state = new Uint8Array(project.width * project.height);
-    for (let i = 0; i < this.state.length; i++) this.state[i] = project.filled[i] ? 255 : 0;
+    this.state = new Uint16Array(project.width * project.height);
+    for (let i = 0; i < this.state.length; i++) this.state[i] = slotState(project, i);
     this.uploadProject(project);
     if (!sameSize) this.fit(false);
   }
@@ -203,9 +216,9 @@ export class Grid2DView extends GLView implements SceneView {
       type: gl.UNSIGNED_SHORT,
     });
     this.stateTex = createDataTexture(gl, p.width, p.height, this.state, {
-      internalFormat: gl.R8,
-      format: gl.RED,
-      type: gl.UNSIGNED_BYTE,
+      internalFormat: gl.R16UI,
+      format: gl.RED_INTEGER,
+      type: gl.UNSIGNED_SHORT,
     });
     const palette = new Uint8Array(p.palette.length * 4);
     p.palette.forEach((hex, i) => {
@@ -225,11 +238,11 @@ export class Grid2DView extends GLView implements SceneView {
     if (!p) return;
     if (slots.length === 0) {
       // Bulk change (reset): resync everything.
-      for (let i = 0; i < this.state.length; i++) this.state[i] = p.filled[i] ? 255 : 0;
+      for (let i = 0; i < this.state.length; i++) this.state[i] = slotState(p, i);
       this.dirty = { x0: 0, y0: 0, x1: p.width - 1, y1: p.height - 1 };
     }
     for (const s of slots) {
-      this.state[s] = p.filled[s] ? 255 : 0;
+      this.state[s] = slotState(p, s);
       const x = s % p.width;
       const y = (s - x) / p.width;
       const d = this.dirty;
@@ -364,8 +377,8 @@ export class Grid2DView extends GLView implements SceneView {
         y0,
         x1 - x0 + 1,
         y1 - y0 + 1,
-        gl.RED,
-        gl.UNSIGNED_BYTE,
+        gl.RED_INTEGER,
+        gl.UNSIGNED_SHORT,
         this.state,
       );
       gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
@@ -396,6 +409,13 @@ export class Grid2DView extends GLView implements SceneView {
     gl.uniform3f(u.u_ink!, ink[0] / 255, ink[1] / 255, ink[2] / 255);
     gl.uniform1f(u.u_intro!, this.intro);
     gl.uniform1f(u.u_complete!, this.complete);
+    gl.uniform1f(u.u_mistakes!, style.showMistakes ? 1 : 0);
+    gl.uniform3f(
+      u.u_mistake!,
+      style.mistake[0] / 255,
+      style.mistake[1] / 255,
+      style.mistake[2] / 255,
+    );
     const cursorX = this.cursor >= 0 ? this.cursor % p.width : -1;
     const cursorY = this.cursor >= 0 ? Math.floor(this.cursor / p.width) : -1;
     gl.uniform2i(u.u_cursor!, cursorX, cursorY);
