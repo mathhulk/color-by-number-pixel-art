@@ -2,7 +2,9 @@ import { Slider } from "@base-ui/react/slider";
 import { Pause, Play, SkipBack, SkipForward, StepBack, StepForward, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { sound } from "@/lib/audio";
 import type { ReplayPlayer } from "@/lib/replay";
+import { CORRECT, slotState } from "@/lib/targets";
 import type { SceneView } from "@/render/types";
 import { useReducedMotion } from "@/state/hooks";
 import { IconButton, SegmentedControl } from "@/ui";
@@ -18,6 +20,8 @@ interface ReplayBarProps {
   player: ReplayPlayer;
   view: SceneView | null;
   onExit: () => void;
+  /** Target color of a slot, for the replay's notes. */
+  colorAt: (slot: number) => number;
 }
 
 /**
@@ -25,7 +29,7 @@ interface ReplayBarProps {
  * and change the speed. At 1× a replay lasts about 20 seconds (4–60 fills per
  * second), so small and huge designs both feel right.
  */
-export function ReplayBar({ player, view, onExit }: ReplayBarProps) {
+export function ReplayBar({ player, view, onExit, colorAt }: ReplayBarProps) {
   const length = player.length;
   const reducedMotion = useReducedMotion();
   const [position, setPosition] = useState(player.position);
@@ -64,6 +68,10 @@ export function ReplayBar({ player, view, onExit }: ReplayBarProps) {
         view?.updateSlots(changed);
         view?.setCursor(player.lastSlot);
         setPosition(player.position);
+        // Replays play the same notes as painting did (thinned out at high speed).
+        const state = slotState(player.view, player.lastSlot);
+        if (state === CORRECT) sound.fill(colorAt(player.lastSlot));
+        else if (state !== 0) sound.wrong();
       }
       if (player.position >= length) {
         setPlaying(false);
@@ -74,7 +82,7 @@ export function ReplayBar({ player, view, onExit }: ReplayBarProps) {
     };
     clock.raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(clock.raf);
-  }, [playing, speed, baseRate, length, player, view, seek]);
+  }, [playing, speed, baseRate, length, player, view, seek, colorAt]);
 
   // Keyboard: space play/pause, arrows step, Home/End jump, Escape exits.
   useEffect(() => {

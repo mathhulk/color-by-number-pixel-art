@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { sound } from "@/lib/audio";
 import { hexToRgb, readableTextColor } from "@/lib/color";
 import { ACCENTS, resolveAccent, visionMatrix } from "@/lib/cvd";
 import type { RenderStyle } from "@/render/types";
@@ -89,6 +90,31 @@ export function useApplyTheme(): void {
     root.style.setProperty("--accent-contrast", readableTextColor(hexToRgb(accent.hex)));
     root.dataset.accent = accent.name;
   }, [theme, accent.hex, accent.name]);
+}
+
+/**
+ * Keeps the sound engine in sync with the settings and unlocks audio on the
+ * first interaction (browsers block audio until a user gesture).
+ */
+export function useSound(): void {
+  const effects = useSettings((s) => s.soundEffects);
+  const music = useSettings((s) => s.music);
+  const volume = useSettings((s) => s.volume);
+  const muted = useSettings((s) => s.muted);
+  useEffect(() => {
+    sound.configure({ effects, music, volume, muted });
+    // Turning music on from the settings is itself a gesture, so start right away.
+    if (music || effects) sound.unlock();
+  }, [effects, music, volume, muted]);
+  useEffect(() => {
+    const unlock = () => sound.unlock();
+    window.addEventListener("pointerdown", unlock, { capture: true });
+    window.addEventListener("keydown", unlock, { capture: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock, { capture: true });
+      window.removeEventListener("keydown", unlock, { capture: true });
+    };
+  }, []);
 }
 
 /** Creates an object URL for a blob and revokes it when it changes. */

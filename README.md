@@ -38,6 +38,12 @@ of everything you're working on. All data stays on your device.
 - **Replay.** Every fill is recorded. Watch it back from the finish screen or the ⋯ menu: play,
   pause, step one fill at a time, scrub with the slider and change the speed (0.5×–8×). Keyboard:
   Space, ← →, Home, End, Esc.
+- **Relaxing sound** (synthesized with Web Audio, so there are no audio files and it works offline):
+  - Each fill plays a soft pluck in its color's own note on a pentatonic scale, so painting makes a
+    gentle melody. Mistakes are a quiet low thud; finishing a color or the picture plays a chime.
+  - Optional ambient music: slow pad chords with the odd sparkle, never quite repeating.
+  - Replays play the notes back too. Sound effects, music and volume are in Settings, plus a mute
+    button on the play screen.
 - **Works offline.** A Workbox service worker precaches the app, and it can be installed to a home
   screen. When a new version is deployed, a toast offers to reload.
 - **Animations.** Cells pop in, or voxels drop into place, the first time a design is opened.

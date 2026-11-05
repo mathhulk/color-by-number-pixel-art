@@ -169,6 +169,34 @@ export function SettingsPanel() {
         ) : null}
       </Fieldset>
 
+      <Fieldset legend="Sound">
+        <SwitchField
+          label="Sound effects"
+          description="Soft notes as you paint (each color has its own) and chimes when you finish."
+          checked={s.soundEffects}
+          onChange={(v) => s.set("soundEffects", v)}
+        />
+        <SwitchField
+          label="Ambient music"
+          description="Slow, gentle background music that never repeats exactly."
+          checked={s.music}
+          onChange={(v) => s.set("music", v)}
+        />
+        <SliderField
+          label="Volume"
+          value={Math.round(s.volume * 100)}
+          onChange={(v) => {
+            s.set("volume", v / 100);
+            if (v > 0 && s.muted) s.set("muted", false);
+          }}
+          min={0}
+          max={100}
+          step={5}
+          format={(v) => (v === 0 ? "Off" : `${v}%`)}
+          disabled={!s.soundEffects && !s.music}
+        />
+      </Fieldset>
+
       <Fieldset legend="Challenge">
         <SwitchField
           label="One tap per square"

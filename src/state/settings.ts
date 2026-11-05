@@ -26,6 +26,14 @@ export interface Settings {
   /** Mark wrong squares with stripes and an outline. */
   showMistakes: boolean;
   haptics: boolean;
+  /** Fill plucks, chimes and other effects. */
+  soundEffects: boolean;
+  /** Generative ambient music. */
+  music: boolean;
+  /** 0–1 */
+  volume: number;
+  /** Quick mute from the play screen; keeps the other sound settings. */
+  muted: boolean;
   motion: MotionPreference;
   celebrate: boolean;
 }
@@ -46,6 +54,10 @@ export const defaultSettings: Settings = {
   allowMistakes: false,
   showMistakes: true,
   haptics: true,
+  soundEffects: true,
+  music: false,
+  volume: 0.7,
+  muted: false,
   motion: "system",
   celebrate: true,
 };

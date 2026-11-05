@@ -12,6 +12,8 @@ import {
   RotateCcw,
   Rotate3d,
   Settings,
+  Volume2,
+  VolumeX,
   Sparkles,
   TriangleAlert,
   Undo2,
@@ -21,11 +23,13 @@ import {
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation } from "wouter";
 
+import { sound } from "@/lib/audio";
 import { getProject, persistProject } from "@/lib/library";
 import type { Project } from "@/lib/project";
 import { progressLabel } from "@/lib/project";
 import { buildReplay, ReplayPlayer } from "@/lib/replay";
 import { PlaySession } from "@/lib/session";
+import { CORRECT } from "@/lib/targets";
 import { Grid2DView } from "@/render/Grid2DView";
 import type { SceneView } from "@/render/types";
 import { Voxel3DView } from "@/render/Voxel3DView";
@@ -187,6 +191,23 @@ function PlayScreen({ session }: { session: PlaySession }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
+  // Sounds: a pluck in the color's own note, a soft thud for mistakes.
+  useEffect(
+    () =>
+      session.onFill((slots, reason) => {
+        if (reason === "undo") {
+          sound.undo();
+          return;
+        }
+        if (reason !== "paint" || slots.length === 0) return;
+        const last = slots[slots.length - 1]!;
+        const state = session.stateAt(last);
+        if (state === CORRECT) sound.fill(session.colorAt(last));
+        else if (state !== 0) sound.wrong();
+      }),
+    [session],
+  );
+
   useEffect(() => viewRef.current?.setStyle(style), [style]);
   useEffect(() => viewRef.current?.setSelected(selected), [selected]);
   useEffect(() => viewRef.current?.setCursor(cursor), [cursor]);
@@ -268,6 +289,7 @@ function PlayScreen({ session }: { session: PlaySession }) {
       wasComplete.current = true;
       project.completedAt = Date.now();
       setAnnouncement(`Artwork complete! ${project.name} is finished.`);
+      sound.complete();
       if (settings.haptics) navigator.vibrate?.([30, 40, 60]);
       const view = viewRef.current;
       const celebrate = settings.celebrate && !reducedMotion;
@@ -282,6 +304,7 @@ function PlayScreen({ session }: { session: PlaySession }) {
     const left = project.palette.filter((_, i) => !session.isColorComplete(i + 1)).length;
     setAnnouncement(`Color ${selected} complete. ${left} ${left === 1 ? "color" : "colors"} left.`);
     if (settings.haptics) navigator.vibrate?.(18);
+    sound.colorComplete(selected);
     if (settings.autoAdvance && next !== null) setSelected(next);
   }, [
     snap,
@@ -316,6 +339,8 @@ function PlayScreen({ session }: { session: PlaySession }) {
     if (!is3d) setCursor(slot);
     setAnnouncement(`This square should be number ${session.colorAt(slot)}.`);
   }, [session, is3d]);
+
+  const colorAt = useCallback((slot: number) => session.colorAt(slot), [session]);
 
   const startReplay = useCallback(() => {
     const view = viewRef.current;
@@ -596,6 +621,14 @@ function PlayScreen({ session }: { session: PlaySession }) {
             onClick={() => setExportOpen(true)}
             className={styles.wideOnly}
           />
+          {settings.soundEffects || settings.music ? (
+            <IconButton
+              label={settings.muted ? "Unmute sounds" : "Mute sounds"}
+              icon={settings.muted ? <VolumeX /> : <Volume2 />}
+              onClick={() => settings.set("muted", !settings.muted)}
+              aria-pressed={settings.muted}
+            />
+          ) : null}
           <IconButton label="Settings" icon={<Settings />} onClick={() => setSettingsOpen(true)} />
           <Menu
             trigger={<IconButton label="More" icon={<MoreHorizontal />} />}
@@ -670,13 +703,16 @@ function PlayScreen({ session }: { session: PlaySession }) {
 
       <div ref={bottomRef} className={styles.bottomDock}>
         {replay ? (
-          <ReplayBar player={replay} view={viewRef.current} onExit={exitReplay} />
+          <ReplayBar player={replay} view={viewRef.current} onExit={exitReplay} colorAt={colorAt} />
         ) : (
           <Palette
             session={session}
             version={snap.version}
             selected={selected}
-            onSelect={setSelected}
+            onSelect={(c) => {
+              setSelected(c);
+              sound.select(c);
+            }}
             vision={style.vision}
             showNames={settings.showColorNames}
           />

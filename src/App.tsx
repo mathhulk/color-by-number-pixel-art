@@ -5,7 +5,7 @@ import { useHashLocation } from "wouter/use-hash-location";
 
 import { LibraryView } from "./features/library/LibraryView";
 import { Loading } from "./features/Loading";
-import { useApplyTheme } from "./state/hooks";
+import { useApplyTheme, useSound } from "./state/hooks";
 import { ToastProvider, TooltipProvider } from "./ui";
 
 const PlayView = lazy(() => import("./features/play/PlayView"));
@@ -13,6 +13,7 @@ const ImportView = lazy(() => import("./features/importer/ImportView"));
 
 export function App() {
   useApplyTheme();
+  useSound();
   return (
     <LucideProvider strokeWidth={1.75}>
       <TooltipProvider delay={400}>

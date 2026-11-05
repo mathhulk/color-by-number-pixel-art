@@ -20,7 +20,9 @@ export interface SessionSnapshot {
   complete: boolean;
 }
 
-type FillListener = (slots: readonly number[]) => void;
+/** Why slots changed: a paint action, undo/redo, a cancelled stroke or a reset. */
+export type FillReason = "paint" | "undo" | "redo" | "cancel" | "reset";
+type FillListener = (slots: readonly number[], reason: FillReason) => void;
 
 const MAX_HISTORY = 200;
 
@@ -220,7 +222,7 @@ export class PlaySession {
     if (before === next) return false;
     this.apply(slot, next, true);
     this.record([slot, before, next]);
-    this.emitFill([slot]);
+    this.emitFill([slot], "paint");
     return true;
   }
 
@@ -251,7 +253,7 @@ export class PlaySession {
     }
     if (changed.length === 0) return 0;
     this.record(changes);
-    this.emitFill(changed);
+    this.emitFill(changed, "paint");
     return changed.length;
   }
 
@@ -276,7 +278,7 @@ export class PlaySession {
         changed.push(stroke[i]!);
       }
       this.log.truncate(this.strokeLogStart);
-      this.emitFill(changed);
+      this.emitFill(changed, "cancel");
     }
     this.notify();
   }
@@ -290,7 +292,7 @@ export class PlaySession {
       this.apply(entry[i]!, entry[i + 1]!, false);
       changed.push(entry[i]!);
     }
-    this.emitFill(changed);
+    this.emitFill(changed, "undo");
     this.notify();
   }
 
@@ -303,7 +305,7 @@ export class PlaySession {
       this.apply(entry[i]!, entry[i + 2]!, false);
       changed.push(entry[i]!);
     }
-    this.emitFill(changed);
+    this.emitFill(changed, "redo");
     this.notify();
   }
 
@@ -318,7 +320,7 @@ export class PlaySession {
     this.undoStack = [];
     this.redoStack = [];
     this.log.truncate(0);
-    this.emitFill([]);
+    this.emitFill([], "reset");
     this.notify();
   }
 
@@ -335,7 +337,7 @@ export class PlaySession {
       changed.push(i);
     }
     this.record(changes);
-    this.emitFill(changed);
+    this.emitFill(changed, "paint");
   }
 
   /** Copies the replay log into the project so it is saved with it. */
@@ -409,8 +411,8 @@ export class PlaySession {
     this.notify();
   }
 
-  private emitFill(slots: readonly number[]): void {
-    for (const l of this.fillListeners) l(slots);
+  private emitFill(slots: readonly number[], reason: FillReason): void {
+    for (const l of this.fillListeners) l(slots, reason);
     // Progress changes mid-stroke should still reach the UI.
     if (this.stroke) this.notify();
   }
